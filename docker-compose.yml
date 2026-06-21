@@ -1,0 +1,30 @@
+services:
+  api:
+    build: .
+    container_name: argus-api
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - PAPER_TRADING=true
+      # Optional Bitget credentials (left empty -> simulated data):
+      - BITGET_API_KEY=${BITGET_API_KEY:-}
+      - BITGET_SECRET_KEY=${BITGET_SECRET_KEY:-}
+      - BITGET_PASSPHRASE=${BITGET_PASSPHRASE:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build: .
+    container_name: argus-frontend
+    command: streamlit run frontend/Home.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      - PAPER_TRADING=true
+      - ARGUS_API_URL=http://api:8000
+    depends_on:
+      - api

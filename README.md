@@ -1,140 +1,235 @@
-Bitget AI Trading Agent — Hackathon S1
-The autonomous trading agent that knows when not to trade.
+# 🛡️ Argus — AI Trading Guardian
 
-What It Solves
-Retail crypto trading is an emotional, fragmented, and reactive game. Traders suffer from FOMO, panic-sell during volatility spikes, and lack a systematic framework to evaluate market conditions across multiple timeframes and data sources. They react to noise rather than acting on structured signals, leading to inconsistent execution and inevitable capital erosion.
+> **Most bots help you enter trades. Argus helps you survive them.**
 
-This agent solves the emotional trading problem by enforcing a strict, autonomous perception→decision→execution→risk loop. It replaces human anxiety with a typed ConfidenceScore — a composite metric built from technical, sentiment, macro, and regime data. The core innovation is the Confidence Gate: if the composite score does not exceed a regime-specific threshold, the executor is hard-blocked from placing a trade. Wrapped in a stateful SessionState that tracks daily PnL and enforces circuit breakers, the agent preserves capital during uncertainty and only deploys risk when the edge is statistically favorable.
+Argus is an **AI Trading Guardian** built for the Bitget AI × Crypto Hackathon.
 
-## Architecture
+Most trading agents compete to generate *more* signals. Argus does the opposite:
+it **protects capital, rejects bad trades, explains risk, and enforces
+discipline**. It never fabricates confidence, never invents a signal, and is
+*proud* to say **NO TRADE**.
+
+### `NO TRADE IS ALPHA™`
+
+When Argus stands aside, it doesn't show an empty screen — it quantifies the
+capital it just protected and the downside it avoided. Avoiding a bad trade is a
+*positive* outcome, not an absence of one.
+
+---
+
+## Why Argus
+
+Retail crypto trading is an emotional, reactive game: FOMO entries, panic exits,
+and no systematic way to judge whether a setup is actually worth the risk. Argus
+replaces that anxiety with a transparent, explainable decision pipeline that
+grades every opportunity and refuses the ones that don't clear its gates.
+
+Argus is **not** an oracle that predicts the future. It is a guardian that helps
+traders make better decisions, understand risk, and preserve capital. It runs
+**paper / read-only by design**.
+
+---
+
+## The Signature Demo (the WOW moment)
+
+Pull up a textbook FOMO chart — `SOLUSDT`, +40% on the week, every short-term
+signal green, momentum screaming. **Most bots flash BUY.**
+
+Argus returns **NO TRADE**, and explains exactly why:
+
+- RSI **86** — exhausted, this is late-cycle chasing
+- ATR **4.6%** — a *normal* wiggle stops you out
+- Reward:risk is upside-down this far into the move
+
+Then it shows the capital that decision just protected. **Standing aside is the trade.**
+Run it yourself: the **Demo Mode** page → *FOMO setup*, or `GET /wow`.
+
+---
+
+## How It Works
+
+Argus runs a five-agent guardian pipeline. Every analysis flows through the
+**Signal Honesty Engine** (Phase 4) and produces a full **Judge Mode** verdict
+(Phase 5).
 
 ```
-╔══════════════════════════════════════════════════════════════════╗
-║              SESSION STATE  (threads through ALL layers)           ║
-║  session_id │ started_at │ cycle_count │ daily_pnl │ active_trades ║
-║  halted │ halt_reason │ consecutive_losses │ last_regime           ║
-╚═══════════════════════════════╤═══════════════════════════════════╝
-                                │
-        ┌───────────────────────▼───────────────────────┐
-        │                 PERCEPTION SWARM               │
-        │  [Bitget Skills: ta, sentiment, news, intel]   │
-        │  ┌───────────┐  ┌───────────┐  ┌───────────┐   │
-        │  │ Technical │  │ Sentiment │  │  OnChain   │  │
-        │  │  (0.78)   │  │  (0.61)   │  │  (0.44)    │  │
-        │  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘   │
-        └────────┼──────────────┼──────────────┼─────────┘
-                 │              │              │
-        ┌────────▼──────────────▼──────────────▼─────────┐
-        │      CONFIDENCE ASSEMBLY & REGIME CLASSIFIER    │
-        │  composite = 0.4*tech + 0.25*sent + 0.2*macro   │
-        │             + 0.15*regime                       │
-        │  Regime = TRENDING_BULL (Conf: 0.85)            │
-        └────────────────────┬────────────────────────────┘
-                             │
-              ┌──────────────▼──────────────┐
-              │     DECISION ENGINE (ReAct) │
-              │   Gate: 0.64 < 0.65 → BLOCK │
-              │   Action: NO_TRADE          │
-              └──────────────┬──────────────┘
-                             │
-              ┌──────────────▼──────────────┐
-              │   RISK GUARDIAN & EXECUTOR  │ ◄── Bitget MCP: place-order
-              │  (Hard block if Gate=False) │
-              └──────────────┬──────────────┘
-                             │
-              ┌──────────────▼──────────────┐
-              │     REFLECTION (ChromaDB)   │
-              └─────────────────────────────┘
+            ┌──────────────────────────────────────────────┐
+            │              MARKET SNAPSHOT                   │
+            │   (Bitget data, or deterministic simulation)   │
+            └───────────────────────┬────────────────────────┘
+                                    │
+     ┌──────────────────────────────▼──────────────────────────────┐
+     │                      AGENT PIPELINE                          │
+     │  ┌────────────────┐ ┌──────────────┐ ┌───────────────────┐  │
+     │  │ Market         │ │ Risk         │ │ Trade Validator   │  │
+     │  │ Intelligence   │ │ Guardian     │ │ (rejects weak     │  │
+     │  │ (trend/vol/    │ │ (sizing,     │ │  setups)          │  │
+     │  │  liquidity)    │ │  drawdown)   │ │                   │  │
+     │  └────────────────┘ └──────────────┘ └───────────────────┘  │
+     │  ┌────────────────┐ ┌────────────────────────────────────┐  │
+     │  │ Execution      │ │ Reflection (journaling, lessons)   │  │
+     │  │ (paper)        │ │                                    │  │
+     │  └────────────────┘ └────────────────────────────────────┘  │
+     └──────────────────────────────┬──────────────────────────────┘
+                                    │
+     ┌──────────────────────────────▼──────────────────────────────┐
+     │                 SIGNAL HONESTY ENGINE                        │
+     │  Hard gates: data-quality floor · liquidity floor · risk     │
+     │  ceiling · FOMO-chase guard · signal-conflict · R:R floor    │
+     │                                                              │
+     │  Grade →  REJECT · WATCH · POSSIBLE SETUP · HIGH QUALITY      │
+     └──────────────────────────────┬──────────────────────────────┘
+                                    │
+     ┌──────────────────────────────▼──────────────────────────────┐
+     │                      JUDGE MODE                              │
+     │  Thesis · Bull case · Bear case · Entry/Invalidation/TP ·    │
+     │  Why it exists · Why it could fail · Why it's rejected       │
+     │                                                              │
+     │  FINAL DECISION →   TAKE TRADE · WATCH · REJECT · NO TRADE    │
+     └──────────────────────────────────────────────────────────────┘
 ```
 
-## Quickstart (3 steps)
+Four meters drive every decision, all on a 0–100 scale:
+**Confidence · Risk · Data Quality · Trade Quality.**
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full system design.
+
+---
+
+## Quickstart
+
+Fresh clone → install → run.
 
 ```bash
-# 1. Install dependencies and configure environment
-git clone https://github.com/Agozie180/ARGUS-.git
-cd ARGUS-
+# 1. Install (Python 3.12 recommended)
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env  # Fill in your Bitget API keys
 
-# 2. Run the agent (Human-in-Loop mode)
-python main.py --paper --symbols BTCUSDT,ETHUSDT --hil
+# 2. (Optional) add Bitget keys — without them Argus uses deterministic
+#    simulated data, so the demo always works.
+cp .env.example .env
 
-# 3. Launch the dashboard
-streamlit run dashboard/app.py
+# 3a. Run the web app (primary hackathon UI)
+streamlit run frontend/Home.py            # → http://localhost:8501
+
+# 3b. Or run the API
+uvicorn backend.main:app --reload         # → http://localhost:8000/docs
 ```
 
-> The agent runs out of the box even without the optional ML/LLM stack:
-> if `chromadb`/`sentence-transformers` are missing, vector memory is disabled
-> gracefully; if `litellm` is missing, the decision engine falls back to its
-> deterministic rule-based reasoning. Run the backtest with `python -m backtest.runner`.
-Bitget Integration
-Component
-Purpose
-Skill/Tool Used
-Technical Agent	Fetch RSI, MACD, EMA, ADX across 4 timeframes	technical-analysis
-Sentiment Agent	Fetch Fear & Greed, funding rates, news	sentiment-analyst, news-briefing
-Macro Agent	Fetch ETF flows, whale activity, DXY	market-intel, macro-analyst
-Execution Engine	Place and manage paper trades	MCP place-order, get-position
-Risk Guardian	Check account balance before sizing	MCP get-account-balance
+### With Docker
 
-MCP Configuration: The agent connects to the Bitget MCP Server via standard stdio transport configured in config/mcp_servers.json.
-Paper Trading: Enforced via BITGET_PAPER_TRADE=true in .env, a hard check in main.py, and simulated fills in executor.py.
+```bash
+docker compose up --build
+# API      → http://localhost:8000/docs
+# Frontend → http://localhost:8501
+```
 
-Sample Backtest Metrics
-Period
-Return
-Sharpe
-Sortino
-Win Rate
-Max DD
-Trades
-Jan–Mar 2024	+18.2%	1.71	2.34	57.3%	-9.8%	47
-Apr–Jun 2024	+11.4%	1.43	1.89	54.1%	-11.2%	39
-Jul–Sep 2024	+24.7%	2.06	2.81	61.8%	-8.4%	52
-Aggregate	+57.3%	1.82	2.41	57.7%	-11.2%	138
+---
 
-Note: Confidence gate filtered 34 signals (19.8%). Win rate on filtered signals was 41.2% vs 57.7% on passed — demonstrating the gate adds genuine edge.
+## Web App
 
-Confidence Scoring System
-The agent does not rely on a single metric. It builds a 4-layer ConfidenceScore:
+The multipage Streamlit app (`frontend/`) is the primary hackathon UI, styled
+like a Bloomberg terminal crossed with an AI copilot:
 
-Technical (40%): Multi-timeframe agreement, ADX strength, volume confirmation.
-Sentiment (25%): Contrarian funding rates, Fear & Greed extremes, news keywords.
-Macro (20%): ETF flows, exchange whale inflows, DXY trends.
-Regime (15%): Stability of the current market regime classification.
-Composite Formula: 0.40*tech + 0.25*sent + 0.20*macro + 0.15*regime
+| Page | What it does |
+|------|--------------|
+| **Home** | Live capital-protection summary + one-click analysis |
+| **Market Scanner** | Grade a watchlist at a glance |
+| **Trade Analysis** | Full Judge Mode verdict for any symbol |
+| **Risk Guardian** | Position sizing, drawdown, portfolio health |
+| **Journal** | Trade journaling + continuous-learning lessons |
+| **Analytics** | Rejections, acceptances, capital saved, mistakes avoided |
+| **Demo Mode** | Six built-in scenarios + the signature WOW moment |
 
-Threshold Logic: The composite must exceed required_threshold to pass the gate.
+Both **Beginner** (plain language) and **Professional** (technical reasoning)
+explanation modes are available everywhere.
 
-Default: 0.65
-HIGH_VOL Regime: 0.75 (higher bar for entry)
-UNKNOWN Regime: 0.80 (near-halt state)
-SUBMISSION DESCRIPTION (exactly ≤200 words, paste-ready)
-Retail crypto trading is emotional, fragmented, and reactive, leading to catastrophic losses. We built an autonomous Bitget trading agent that executes a strict perception→decision→execution→risk loop.
+---
 
-The agent is session-aware: it tracks daily PnL, halts on circuit breakers, and dynamically reduces position size after consecutive losses.
+## API
 
-At its core is a 4-layer Confidence Score (Technical, Sentiment, Macro, Regime). The composite score must exceed a regime-specific threshold (e.g., 0.75 in High Volatility) to pass the gate. If it doesn't, the executor is hard-blocked from trading. The agent genuinely knows when NOT to trade.
+`uvicorn backend.main:app` exposes (full schema at `/docs`):
 
-It integrates deeply with Bitget Agent Hub, utilizing all 5 MCP skills (technical-analysis, sentiment-analyst, news-briefing, market-intel, macro-analyst) for perception, and MCP for paper-trade execution.
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Liveness check |
+| `GET /analyze/{symbol}` | Full Judge Mode analysis |
+| `GET /scan` | Grade a list of symbols |
+| `GET /scenarios` | List built-in demo scenarios |
+| `GET /demo/{scenario}` | Run scenario A–F |
+| `GET /wow` | The signature NO-TRADE moment |
+| `GET /journal` | Continuous-learning report |
 
-The result is a fully explainable, regime-adaptive, paper-trading-safe agent that leverages AI reasoning to filter noise and execute only high-conviction setups. Backtests prove the confidence gate filters losing trades, improving win rates from 41% to 57%.
+---
 
-Video Script (3 minutes)
-0:00–0:30 — Problem statement
-(Show messy retail trading charts, red portfolios) Retail trading is emotional and reactive. Traders lack a systematic edge. Enter our Bitget AI Agent.
+## Demo Scenarios
 
-0:30–1:00 — Architecture walkthrough
-(Show ASCII diagram) Explain the perception swarm. Highlight the 4-layer Confidence Score and how SessionState threads through the entire loop to track PnL and halts.
+Every scenario is deterministic, so judges get the same result every time.
 
-1:00–1:45 — Live demo
-(Terminal running main.py) Run one full cycle. Show the ReAct reasoning trace in the terminal. Show a trade being blocked by the Confidence Gate because macro confidence was too low.
+| | Scenario | Argus says | Lesson |
+|-|----------|-----------|--------|
+| **A** | Excellent trade | TAKE TRADE | What a genuinely high-quality setup looks like |
+| **B** | Weak trade | WATCH | Mediocre signals are not opportunities |
+| **C** | Low-liquidity trap | REJECT | A pretty chart on a thin book is a slippage trap |
+| **D** | FOMO setup | **NO TRADE** | Chasing an overbought parabola is how accounts die |
+| **E** | Missing data | NO TRADE | If you can't trust the inputs, you can't trust the trade |
+| **F** | Trend exhaustion | WATCH | Strong trends end — momentum divergence is the tell |
 
-1:45–2:15 — Dashboard tour
-(Streamlit app) Show the Live Confidence Panel gauges. Scroll through Trade History and expand a Reflection to show the agent learning from its mistakes.
+---
 
-2:15–2:45 — Backtest results
-(Dashboard backtest section) Highlight the table showing 57% win rate. Emphasize the "Confidence gate filtered 34 signals" metric proving the gate adds genuine edge.
+## Project Layout
 
-2:45–3:00 — Close
-"The agent doesn't just trade — it knows when not to trade."
+```
+backend/    FastAPI app entrypoint
+api/        Routes + Pydantic schemas
+core/       Domain models, scoring, Signal Honesty Engine, Judge Mode, demos
+agents/     Market Intelligence · Risk Guardian · Trade Validator · Reflection · Execution · Orchestrator
+services/   Bitget + market-data adapters (simulated fallback)
+frontend/   Streamlit multipage web app (primary UI)
+dashboard/  Shared UI theme + components
+tests/      Pytest suite
+docs/       Architecture, deployment, demo script, pitches, feature matrix
+```
+
+---
+
+## Testing
+
+```bash
+pytest -q
+```
+
+---
+
+## Deployment
+
+Argus ships with a `Dockerfile`, `docker-compose.yml`, `Procfile`, and
+`render.yaml`. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for Railway,
+Render, and Docker walkthroughs.
+
+---
+
+## Bitget Integration
+
+Argus is built for Bitget compatibility — spot and futures market data, risk
+monitoring, and agent-based workflows — with `services/bitget.py` as the
+adapter seam. Without credentials it runs on deterministic simulated data so the
+guardian logic is always demonstrable. Live order execution is intentionally
+gated off; Argus is a guardian, not an auto-trader.
+
+---
+
+## Documentation
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system & component design
+- [`docs/FEATURE_MATRIX.md`](docs/FEATURE_MATRIX.md) — features mapped to hackathon phases
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Railway / Render / Docker
+- [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) — judge walkthrough
+- [`docs/PITCH.md`](docs/PITCH.md) — 3-minute & 5-minute pitches
+- [`docs/TECHNICAL.md`](docs/TECHNICAL.md) — engine internals & scoring math
+- [`docs/JUDGE_REVIEW.md`](docs/JUDGE_REVIEW.md) — hackathon judge self-review & scorecard
+
+---
+
+*Argus is a guardian, not an oracle. Paper / read-only by design. It helps
+traders avoid bad trades, understand risk, and preserve capital.*
