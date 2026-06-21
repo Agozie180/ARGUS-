@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "bitget": {
+      "command": "bgc",
+      "args": ["mcp", "serve", "--transport", "stdio"],
+      "transport": "stdio",
+      "env": {
+        "BITGET_API_KEY": "${BITGET_API_KEY}",
+        "BITGET_SECRET_KEY": "${BITGET_SECRET_KEY}",
+        "BITGET_PASSPHRASE": "${BITGET_PASSPHRASE}",
+        "BITGET_PAPER_TRADE": "true"
+      },
+      "skills": [
+        "technical-analysis",
+        "sentiment-analyst",
+        "news-briefing",
+        "market-intel",
+        "macro-analyst",
+        "place-order",
+        "get-position",
+        "get-account-balance"
+      ]
+    }
+  }
+}

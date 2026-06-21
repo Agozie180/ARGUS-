@@ -1,0 +1,18 @@
+# --- Core runtime (required to run main.py and the backtest) ---
+pydantic>=2.5
+pydantic-settings>=2.1
+rich>=13.7
+
+# --- Backtest & dashboard ---
+pandas>=2.1
+numpy>=1.26
+matplotlib>=3.8
+plotly>=5.18
+streamlit>=1.30
+
+# --- Optional: vector memory / reflection (agent degrades gracefully if absent) ---
+chromadb>=0.4.22
+sentence-transformers>=2.3.0
+
+# --- Optional: LLM reasoning (falls back to deterministic rules if absent) ---
+litellm>=1.30.0

@@ -6,14 +6,53 @@ Retail crypto trading is an emotional, fragmented, and reactive game. Traders su
 
 This agent solves the emotional trading problem by enforcing a strict, autonomous perception→decision→execution→risk loop. It replaces human anxiety with a typed ConfidenceScore — a composite metric built from technical, sentiment, macro, and regime data. The core innovation is the Confidence Gate: if the composite score does not exceed a regime-specific threshold, the executor is hard-blocked from placing a trade. Wrapped in a stateful SessionState that tracks daily PnL and enforces circuit breakers, the agent preserves capital during uncertainty and only deploys risk when the edge is statistically favorable.
 
-Architecture
-╔══════════════════════════════════════════════════════════════════════╗║                    SESSION STATE  (threads through ALL layers)        ║║  session_id │ started_at │ cycle_count │ daily_pnl │ active_trades   ║║  halted │ halt_reason │ consecutive_losses │ last_regime             ║╚══════════════════════════╤═══════════════════════════════════════════╝                           │    ┌──────────────────────▼──────────────────────────┐    │              PERCEPTION SWARM                    │    │  [Bitget Skills: ta, sentiment, news, intel, macro]│    │                                                  │    │  ┌───────────┐  ┌────────────┐  ┌────────────┐  │    │  │ Technical │  │ Sentiment  │  │  OnChain   │  │    │  │  (0.78)   │  │  (0.61)    │  │  (0.44)    │  │    │  └─────┬─────┘  └─────┬──────┘  └─────┬──────┘  │    └─────────┼───────────────┼─────────────────┼──────┘              │               │                 │    ┌─────────▼───────────────▼─────────────────▼─────┐    │      CONFIDENCE ASSEMBLY & REGIME CLASSIFIER    │    │  composite = 0.4*tech + 0.25*sent + 0.2*macro   │    │  Regime = TRENDING_BULL (Conf: 0.85)            │    └────────────────┬────────────────────────────────┘                     │    ┌────────────────▼────────────────┐    │      DECISION ENGINE (ReAct)    │    │  Gate: 0.64 < 0.65 Threshold    │    │  Action: NO_TRADE               │    └────────────────┬────────────────┘                     │   ┌─────────────────▼───────────────┐   │  RISK GUARDIAN & EXECUTOR       │  ◄── Bitget MCP: place-order   │  (Hard block if Gate = False)   │   └─────────────────┬───────────────┘                     │   ┌─────────────────▼───────────────┐   │      REFLECTION (ChromaDB)      │   └─────────────────────────────────┘
-Quickstart (3 steps)
-bash
+## Architecture
 
+```
+╔══════════════════════════════════════════════════════════════════╗
+║              SESSION STATE  (threads through ALL layers)           ║
+║  session_id │ started_at │ cycle_count │ daily_pnl │ active_trades ║
+║  halted │ halt_reason │ consecutive_losses │ last_regime           ║
+╚═══════════════════════════════╤═══════════════════════════════════╝
+                                │
+        ┌───────────────────────▼───────────────────────┐
+        │                 PERCEPTION SWARM               │
+        │  [Bitget Skills: ta, sentiment, news, intel]   │
+        │  ┌───────────┐  ┌───────────┐  ┌───────────┐   │
+        │  │ Technical │  │ Sentiment │  │  OnChain   │  │
+        │  │  (0.78)   │  │  (0.61)   │  │  (0.44)    │  │
+        │  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘   │
+        └────────┼──────────────┼──────────────┼─────────┘
+                 │              │              │
+        ┌────────▼──────────────▼──────────────▼─────────┐
+        │      CONFIDENCE ASSEMBLY & REGIME CLASSIFIER    │
+        │  composite = 0.4*tech + 0.25*sent + 0.2*macro   │
+        │             + 0.15*regime                       │
+        │  Regime = TRENDING_BULL (Conf: 0.85)            │
+        └────────────────────┬────────────────────────────┘
+                             │
+              ┌──────────────▼──────────────┐
+              │     DECISION ENGINE (ReAct) │
+              │   Gate: 0.64 < 0.65 → BLOCK │
+              │   Action: NO_TRADE          │
+              └──────────────┬──────────────┘
+                             │
+              ┌──────────────▼──────────────┐
+              │   RISK GUARDIAN & EXECUTOR  │ ◄── Bitget MCP: place-order
+              │  (Hard block if Gate=False) │
+              └──────────────┬──────────────┘
+                             │
+              ┌──────────────▼──────────────┐
+              │     REFLECTION (ChromaDB)   │
+              └─────────────────────────────┘
+```
+
+## Quickstart (3 steps)
+
+```bash
 # 1. Install dependencies and configure environment
-git clone https://github.com/your-repo/bitget-ai-agent.git
-cd bitget-ai-agent
+git clone https://github.com/Agozie180/ARGUS-.git
+cd ARGUS-
 pip install -r requirements.txt
 cp .env.example .env  # Fill in your Bitget API keys
 
@@ -22,6 +61,12 @@ python main.py --paper --symbols BTCUSDT,ETHUSDT --hil
 
 # 3. Launch the dashboard
 streamlit run dashboard/app.py
+```
+
+> The agent runs out of the box even without the optional ML/LLM stack:
+> if `chromadb`/`sentence-transformers` are missing, vector memory is disabled
+> gracefully; if `litellm` is missing, the decision engine falls back to its
+> deterministic rule-based reasoning. Run the backtest with `python -m backtest.runner`.
 Bitget Integration
 Component
 Purpose

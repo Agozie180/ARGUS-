@@ -55,7 +55,7 @@ async def _llm_reason(tech, sent, macro, regime_state, session) -> dict:
     }}"""
     
     try:
-        response = await litellm.completion(
+        response = await litellm.acompletion(
             model="gpt-4o-mini", # Fallback to ensure availability
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"}

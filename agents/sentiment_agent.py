@@ -4,7 +4,7 @@ import time
 import logging
 from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
-from typing import Tuple, List
+from typing import Tuple, List, Any
 
 from config import FearGreedZone, Direction, SessionState
 from bitget_client import BitgetClient

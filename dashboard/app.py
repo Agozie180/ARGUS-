@@ -92,10 +92,13 @@ regimes = read_jsonl("regime_log.jsonl")
 stats = read_json("stats.json")
 bt_results = pd.read_csv("backtest_results.csv") if os.path.exists("backtest_results.csv") else pd.DataFrame()
 
+# decisions.jsonl stores asdict(decision) flat — keys live at the top level,
+# with session fields nested under "session_snapshot".
 latest_decision = decisions[-1] if decisions else {}
 latest_regime = regimes[-1] if regimes else {}
-latest_conf = latest_decision.get("decision", {}).get("confidence_score", {})
-latest_trace = latest_decision.get("decision", {}).get("reasoning_trace", [])
+latest_session = latest_decision.get("session_snapshot", {})
+latest_conf = latest_decision.get("confidence_score", {})
+latest_trace = latest_decision.get("reasoning_trace", [])
 
 # --- Sidebar ---
 st.sidebar.title("⚙️ Controls")
@@ -122,12 +125,12 @@ with st.sidebar.expander("About this agent"):
     """)
 
 # --- Header ---
-st.markdown(f"### 🤖 Bitget AI Trading Agent — Session `{latest_decision.get('session_id', 'N/A')[:8]}`")
+st.markdown(f"### 🤖 Bitget AI Trading Agent — Session `{str(latest_session.get('session_id', 'N/A'))[:8]}`")
 col_h1, col_h2, col_h3 = st.columns([2, 1, 1])
 with col_h1: st.write(f"**Started:** {latest_decision.get('timestamp', 'N/A')}")
 with col_h2: st.markdown("`PAPER TRADING MODE` ✅")
 with col_h3:
-    if latest_decision.get("decision", {}).get("session_snapshot", {}).get("halted", False):
+    if latest_session.get("halted", False):
         st.markdown("`HALTED` 🛑")
     else:
         st.markdown("`ACTIVE` 🟢")
@@ -154,7 +157,7 @@ c1, c2, c3, c4 = st.columns(4)
 
 with c1:
     val = latest_conf.get("technical_confidence", 0)
-    st.markdown(conf_bar_html("TECHNICAL", val, f"Signal: {latest_decision.get('decision', {}).get('regime_state', {}).get('reasoning', '')}"), unsafe_allow_html=True)
+    st.markdown(conf_bar_html("TECHNICAL", val, f"Signal: {latest_decision.get('regime_state', {}).get('reasoning', '')}"), unsafe_allow_html=True)
 with c2:
     val = latest_conf.get("sentiment_confidence", 0)
     st.markdown(conf_bar_html("SENTIMENT", val, "F&G: 32 (FEAR)"), unsafe_allow_html=True)

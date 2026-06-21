@@ -78,7 +78,8 @@ def simulate_snapshot(row: pd.Series, symbol: str):
     """Converts a historical df row into snapshot dicts for the engine."""
     from agents.technical_agent import TechnicalSnapshot
     from agents.sentiment_agent import SentimentSnapshot
-    from agents.onchain_macro_agent import MacroSnapshot, FearGreedZone, InstitutionalBias
+    from agents.onchain_macro_agent import MacroSnapshot
+    from config import FearGreedZone, InstitutionalBias
     
     adx = float(row['adx'])
     atr_p = float(min(100.0, max(0.0, row['atr_pct'] * 10)))
@@ -151,6 +152,7 @@ async def run_backtest():
             
             session = SessionState()
             session.daily_pnl_pct = 0.0 # Track pct directly
+            cum_return = 0.0           # running cumulative return for the equity curve
             equity_curve = [1.0]
             trades = []
             gated_count = 0
@@ -163,20 +165,23 @@ async def run_backtest():
                 regime = classify_regime(tech, sent, macro, session)
                 session.last_regime = regime.regime
                 
-                decision = decide(symbol, tech, tech_c, sent, sent_c, macro, macro_c, regime, session)
-                
+                decision = await decide(symbol, tech, tech_c, sent, sent_c, macro, macro_c, regime, session)
+
                 if not decision.confidence_score.gate_passed:
                     gated_count += 1
-                    # Simulate what would have happened
+                    # Simulate what would have happened had we taken the blocked trade
                     if decision.action != Direction.NO_TRADE:
-                        future_ret = window_df.loc[idx:, 'close'].pct_change(24).iloc[24] if idx + 24 < window_df.index[-1] else 0
+                        try:
+                            future_ret = window_df.loc[idx:, 'close'].pct_change(24).iloc[24] if idx + 24 < window_df.index[-1] else 0
+                        except (IndexError, KeyError):
+                            future_ret = 0
                         if (decision.action == Direction.BUY and future_ret > 0) or (decision.action == Direction.SELL and future_ret < 0):
                             gated_wins += 1
                     continue
-                
+
                 if decision.action != Direction.NO_TRADE:
                     passed_count += 1
-                    risk = assess_risk(decision, session)
+                    risk = await assess_risk(decision, session)
                     if risk.approved:
                         # Simulate trade outcome 24 bars later
                         future_idx = idx + 24
@@ -189,11 +194,13 @@ async def run_backtest():
                                 pnl_pct = (entry - exit_p) / entry
                             
                             session.update_after_trade(pnl_pct)
+                            cum_return += pnl_pct
+                            session.daily_pnl_pct = cum_return
                             trades.append({"pnl": pnl_pct, "regime": regime.regime.value})
                             if pnl_pct > 0: passed_wins += 1
-                            
+
                 session.cycle_count += 1
-                equity_curve.append(1.0 + session.daily_pnl_pct)
+                equity_curve.append(1.0 + cum_return)
                 
             # Window Metrics
             total_trades = len(trades)

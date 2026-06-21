@@ -92,12 +92,14 @@ class TradingAgent:
             console.print(Panel(trace_table, title=f"🧠 Reasoning Trace — {symbol}", border_style="dim blue", width=80))
                 
             if decision.action != Direction.NO_TRADE:
+                proceed = True
                 if self.hil:
                     console.print(f"  [yellow]Proposed:[/] {decision.action.value} {symbol} @ {decision.entry_price:.2f}")
                     user_input = await asyncio.to_thread(input, "  Execute? [y/n/q]: ")
                     if user_input.lower() == 'q': self.shutdown_requested = True; return
-                    if user_input.lower() != 'y': continue
-                else:
+                    if user_input.lower() != 'y': proceed = False
+
+                if proceed:
                     risk_decision = await assess_risk(decision, self.session)
                     if risk_decision.approved:
                         trade_rec = await execute_paper(decision, risk_decision, self.session)

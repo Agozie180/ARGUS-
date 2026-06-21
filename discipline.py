@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime, timezone, timedelta
 from config import SessionState, Direction, settings
@@ -96,5 +97,3 @@ class DisciplineEngine:
                 return False, f"[OVERTRADE_GUARD] Cooldown active. {remaining.seconds // 60}m {remaining.seconds % 60}s remaining."
 
         return True, "Oath cleared."
-
-# Note: Ensure 'import json' is at the top of the file in actual implementation.
