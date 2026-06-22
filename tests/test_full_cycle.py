@@ -11,7 +11,7 @@ from config import SessionState, Direction, RegimeEnum
 from bitget_client import BitgetClient
 
 async def run_test():
-    print("🧪 INITIALIZING FULL SYSTEM TEST...")
+    print("🧪 ARGUS — INITIALIZING FULL SYSTEM TEST...")
     
     # 1. Mock Bitget Client to avoid needing actual CLI/API
     print("  [1/5] Mocking Bitget Client...")
@@ -37,7 +37,7 @@ async def run_test():
     session = SessionState()
     
     # 3. Run Perception
-    print("  [3/5] Running Perception Swarm...")
+    print("  [3/5] Running perception agents...")
     with patch('agents.technical_agent.bitget', mock_bitget), \
          patch('agents.sentiment_agent.bitget', mock_bitget), \
          patch('agents.onchain_macro_agent.bitget', mock_bitget), \
@@ -81,7 +81,7 @@ async def run_test():
             assert os.path.exists("paper_trades.jsonl"), "paper_trades.jsonl should be created"
             print(f"     ✓ Trade Executed. ID: {trade_rec.trade_id}")
             
-    print("\n[bold green]✅ ALL TESTS PASSED. SYSTEM IS LEGENDARY.[/]")
+    print("\n[bold green]✅ ALL TESTS PASSED — ARGUS IS READY.[/]")
 
 if __name__ == "__main__":
     # Clean up test files before run

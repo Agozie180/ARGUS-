@@ -35,7 +35,7 @@ class Decision:
     timestamp: datetime
 
 async def _llm_reason(tech, sent, macro, regime_state, session) -> dict:
-    prompt = f"""You are an elite crypto trading agent. Analyze the market data and decide whether to BUY, SELL, or NO_TRADE.
+    prompt = f"""You are Argus, a disciplined AI trading guardian. Your job is to protect capital first: analyze the market data and decide whether to BUY, SELL, or NO_TRADE. You are proud to say NO_TRADE when conditions do not justify action.
     
     Current Regime: {regime_state.regime.value} (Conf: {regime_state.regime_confidence:.2f})
     Historical Context: {regime_state.historical_outcome_summary}

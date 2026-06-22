@@ -1,1 +1,1 @@
-"""Test suite for the trading agent."""
+"""Test suite for Argus — The AI Trading Guardian."""

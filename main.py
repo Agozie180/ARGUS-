@@ -1,3 +1,13 @@
+"""Argus — The AI Trading Guardian (live paper-trading loop).
+
+A continuous guardian loop: perceive the market with the agent ensemble,
+classify the regime, deliberate a decision, and — only when the setup clears
+Argus' gates — open a paper position. Argus is proud to stand aside: when no
+setup justifies action it logs NO TRADE, because NO TRADE IS ALPHA™.
+
+Run:
+    python main.py --symbols BTCUSDT,ETHUSDT --cycles 3
+"""
 import asyncio
 import argparse
 import signal
@@ -6,7 +16,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from typing import List
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
 from rich.align import Align
@@ -44,12 +54,18 @@ class TradingAgent:
         settings.CONFIDENCE_THRESHOLD_DEFAULT = threshold
 
     def print_banner(self):
-        banner_text = Text("BITGET AI TRADING AGENT", style="bold cyan", justify="center")
-        sub_text = Text("Mythical Discipline | Absolute Execution | Unbreakable Risk", style="dim", justify="center")
-        session_text = Text(f"Session: {self.session.session_id[:8]} | Mode: PAPER TRADING ✓ | Threshold: {self.threshold:.2f}", style="yellow", justify="center")
-        
+        banner_text = Text("🛡  ARGUS", style="bold cyan", justify="center")
+        title_text = Text("The AI Trading Guardian", style="cyan", justify="center")
+        sub_text = Text("Most bots help you enter trades. Argus helps you survive them.",
+                        style="dim italic", justify="center")
+        principle_text = Text("NO TRADE IS ALPHA™", style="bold green", justify="center")
+        session_text = Text(
+            f"Session: {self.session.session_id[:8]} | Mode: PAPER / READ-ONLY | "
+            f"Threshold: {self.threshold:.2f}", style="yellow", justify="center")
+
         panel = Panel.fit(
-            Align.center(banner_text) + "\n" + Align.center(sub_text) + "\n" + Align.center(session_text),
+            Group(banner_text, title_text, Text(""), sub_text, principle_text,
+                  Text(""), session_text),
             border_style="bold blue",
             padding=(1, 4)
         )
@@ -67,7 +83,7 @@ class TradingAgent:
             return
 
         for symbol in self.symbols:
-            with console.status(f"[cyan]Perceiving market swarm for {symbol}...[/]"):
+            with console.status(f"[cyan]Argus is perceiving the market for {symbol}...[/]"):
                 tech_task = asyncio.create_task(tech_perceive(symbol, self.session))
                 sent_task = asyncio.create_task(sent_perceive(symbol, self.session))
                 macro_task = asyncio.create_task(macro_perceive(symbol, self.session))
@@ -104,10 +120,10 @@ class TradingAgent:
                     if risk_decision.approved:
                         trade_rec = await execute_paper(decision, risk_decision, self.session)
                         if trade_rec:
-                            console.print(f"  [bold green]⚔️ EXECUTED[/] {decision.action.value} {symbol} @ {trade_rec.fill_price:.2f} | Size: ${risk_decision.adjusted_size_usd:.2f} | Risk: ✅")
+                            console.print(f"  [bold green]✅ TAKE TRADE[/] {decision.action.value} {symbol} @ {trade_rec.fill_price:.2f} | Size: ${risk_decision.adjusted_size_usd:.2f} | Paper fill ✓")
                     else:
-                        # The Mythical Restraint: Logging rejections loudly and honestly
-                        console.print(Panel(f"[bold red]🛡️ TRADE REJECTED[/]\nReason: {risk_decision.rejection_reason}", title="DISCIPLINE ENGINE", border_style="red", width=60))
+                        # Argus stands aside loudly and honestly — NO TRADE IS ALPHA.
+                        console.print(Panel(f"[bold red]🛡️ TRADE REJECTED[/]\nReason: {risk_decision.rejection_reason}", title="ARGUS — RISK GUARDIAN", border_style="red", width=60))
             else:
                 gate_reason = decision.confidence_score.gate_reason
                 console.print(f"  [yellow]⏸️ NO TRADE[/] | Gate: {gate_reason}")
@@ -132,7 +148,7 @@ class TradingAgent:
             f.write(json.dumps(self.session.to_dict(), default=str) + "\n")
 
 async def main_async():
-    parser = argparse.ArgumentParser(description="Bitget AI Trading Agent")
+    parser = argparse.ArgumentParser(description="Argus — The AI Trading Guardian")
     parser.add_argument("--paper", action="store_true", default=True)
     parser.add_argument("--symbols", type=str, default="BTCUSDT,ETHUSDT")
     parser.add_argument("--interval", type=int, default=900)

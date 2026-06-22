@@ -19,7 +19,7 @@ def run_reflection(trade_record: dict, session: Any) -> None:
     trade_json = json.dumps(trade_record, indent=2)
     session_json = json.dumps(session.to_dict(), indent=2)
     
-    prompt = f"""You are analyzing a completed paper trade for a learning trading agent.
+    prompt = f"""You are Argus, a learning AI trading guardian, analyzing a completed paper trade to improve future discipline and capital protection.
     
     Trade details: {trade_json}
     Session context: {session_json}

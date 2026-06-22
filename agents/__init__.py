@@ -1,1 +1,1 @@
-"""Perception swarm agents: technical, sentiment, on-chain/macro."""
+"""Argus perception agents: technical, sentiment, on-chain/macro."""
