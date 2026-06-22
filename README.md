@@ -120,20 +120,7 @@ It integrates deeply with Bitget Agent Hub, utilizing all 5 MCP skills (technica
 
 The result is a fully explainable, regime-adaptive, paper-trading-safe agent that leverages AI reasoning to filter noise and execute only high-conviction setups. Backtests prove the confidence gate filters losing trades, improving win rates from 41% to 57%.
 
-Video Script (3 minutes)
-0:00–0:30 — Problem statement
-(Show messy retail trading charts, red portfolios) Retail trading is emotional and reactive. Traders lack a systematic edge. Enter our Bitget AI Agent.
-
-0:30–1:00 — Architecture walkthrough
-(Show ASCII diagram) Explain the perception swarm. Highlight the 4-layer Confidence Score and how SessionState threads through the entire loop to track PnL and halts.
-
-1:00–1:45 — Live demo
-(Terminal running main.py) Run one full cycle. Show the ReAct reasoning trace in the terminal. Show a trade being blocked by the Confidence Gate because macro confidence was too low.
-
-1:45–2:15 — Dashboard tour
-(Streamlit app) Show the Live Confidence Panel gauges. Scroll through Trade History and expand a Reflection to show the agent learning from its mistakes.
-
-2:15–2:45 — Backtest results
+ Backtest results
 (Dashboard backtest section) Highlight the table showing 57% win rate. Emphasize the "Confidence gate filtered 34 signals" metric proving the gate adds genuine edge.
 
 2:45–3:00 — Close
