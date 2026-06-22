@@ -50,7 +50,8 @@ Argus returns **NO TRADE**, and explains exactly why:
 - Reward:risk is upside-down this far into the move
 
 Then it shows the capital that decision just protected. **Standing aside is the trade.**
-Run it yourself: the **Demo Mode** page → *FOMO setup*, or `GET /wow`.
+Run it yourself three ways: the **Demo Mode** page → *FOMO setup*, `GET /wow`, or
+the one-liner `python argus_demo.py --wow`.
 
 ---
 
@@ -122,6 +123,10 @@ streamlit run frontend/Home.py            # → http://localhost:8501
 
 # 3b. Or run the API
 uvicorn backend.main:app --reload         # → http://localhost:8000/docs
+
+# 3c. Or the zero-setup terminal demo (no server, no browser)
+python argus_demo.py                      # WOW moment + all 6 scenarios + CPS
+python argus_demo.py --wow                # just the signature NO-TRADE moment
 ```
 
 ### With Docker
@@ -199,6 +204,7 @@ agents/     Market Intelligence · Risk Guardian · Trade Validator · Reflectio
 services/   Bitget + market-data adapters (simulated fallback)
 frontend/   Streamlit multipage web app (primary UI)
 dashboard/  Shared UI theme + components
+argus_demo.py  Zero-setup rich terminal demo (WOW moment + all scenarios + CPS)
 tests/      Pytest suite
 docs/       Architecture, deployment, demo script, pitches, feature matrix
 ```
