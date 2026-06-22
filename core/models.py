@@ -119,6 +119,17 @@ class JudgeReport:
     why_trade_exists: str
     why_trade_could_fail: str
     why_trade_should_be_rejected: str
+    what_would_improve: List[str]
+
+    # Market context (Judge Mode)
+    market_structure: str
+    liquidity_analysis: str
+    volatility_analysis: str
+    capital_protection_impact: str
+
+    # Session-aware conviction gate
+    session: str
+    confidence_threshold: float
 
     # Scores
     scores: Scores

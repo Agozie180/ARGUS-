@@ -5,7 +5,7 @@ Each function renders directly into the active Streamlit context.
 """
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, List
 
 import streamlit as st
 
@@ -100,6 +100,65 @@ def four_meters(scores: Dict[str, float]) -> None:
         meter("Data Quality", scores.get("data_quality", 0), "can we trust inputs?")
     with c4:
         meter("Trade Quality", scores.get("trade_quality", 0), "composite verdict")
+
+
+def cps_hero(cps: Dict) -> None:
+    """The signature Capital Protection Score — displayed prominently."""
+    score = cps.get("cps", 0)
+    grade = cps.get("grade", "–")
+    color = _color_for(score)
+    st.markdown(
+        f"""
+        <div class="argus-card" style="border-color:{color};">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font-size:13px;letter-spacing:.5px;color:{MUTED};">CAPITAL PROTECTION SCORE™</span>
+            <span style="font-weight:700;color:{color};">Grade {grade}</span>
+          </div>
+          <div style="font-size:46px;font-weight:800;color:{color};line-height:1.1;">
+            {score:.0f}<span style="font-size:18px;color:{MUTED};">/100</span>
+          </div>
+          <div class="argus-meter-track" style="margin-top:6px;">
+            <div style="background:{color};border-radius:6px;height:14px;width:{max(0,min(100,int(score)))}%;"></div>
+          </div>
+          <div style="margin-top:8px;font-size:13px;color:#cfd3d8;">{cps.get('headline','')}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def cps_meter(cps: Dict) -> None:
+    """Compact CPS meter for sidebars / meter rows."""
+    meter("Capital Protection Score", cps.get("cps", 0),
+          f"Grade {cps.get('grade','–')} • {cps.get('trades_rejected',0)} rejected")
+
+
+def cps_breakdown(cps: Dict) -> None:
+    """The five tracked guardian behaviours behind the CPS."""
+    c = st.columns(4)
+    c[0].metric("💰 Losses avoided", f"${cps.get('potential_loss_avoided_usd',0):,.0f}")
+    c[1].metric("📉 Exposure avoided", f"${cps.get('risk_exposure_avoided_usd',0):,.0f}")
+    c[2].metric("🚀 FOMO blocked", cps.get("fomo_blocked", 0))
+    c[3].metric("💧 Liquidity traps", cps.get("liquidity_traps_avoided", 0))
+
+
+def watchlist(rows: List[Dict]) -> None:
+    """Compact watchlist: symbol, decision badge, key meters."""
+    st.markdown("#### 👁 Watchlist")
+    for r in rows:
+        color, icon = DECISION_STYLE.get(r.get("decision", ""), (MUTED, "•"))
+        st.markdown(
+            f"""
+            <div class="argus-card" style="padding:10px 14px;margin-bottom:8px;
+                 display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:700;font-size:15px;">{r.get('symbol','')}</span>
+              <span style="color:{MUTED};font-size:12px;">conf {r.get('confidence',0):.0f} ·
+                    risk {r.get('risk',0):.0f} · TQ {r.get('trade_quality',0):.0f}</span>
+              <span class="argus-badge" style="background:{color}22;color:{color};">{icon} {r.get('decision','')}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def no_trade_alpha_banner(capital_protected: float, note: str) -> None:

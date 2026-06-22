@@ -21,8 +21,18 @@ st.write(
 
 argus = ac.get_argus()
 
-# --- Live capital-protection summary -----------------------------------------
+# --- Signature Capital Protection Score + watchlist --------------------------
 report = argus.learning_report()
+left, right = st.columns([1, 1])
+with left:
+    ui.cps_hero(argus.cps_overview())
+    ui.cps_breakdown(argus.cps_overview())
+with right:
+    ui.watchlist(argus.scan(["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]))
+
+st.divider()
+
+# --- Live session summary ----------------------------------------------------
 m = st.columns(4)
 m[0].metric("Decisions made", report["total_decisions"])
 m[1].metric("Trades rejected", report["trades_rejected"])

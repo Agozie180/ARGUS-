@@ -11,14 +11,17 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
+from core.cps import compute_cps
+
 JOURNAL_PATH = os.getenv("ARGUS_JOURNAL", "argus_journal.jsonl")
 
 
 class ReflectionAgent:
     name = "Reflection"
 
-    def __init__(self, path: str = JOURNAL_PATH):
+    def __init__(self, path: str = JOURNAL_PATH, capital_usd: float = 10_000.0):
         self.path = path
+        self.capital_usd = capital_usd
 
     def journal(self, entry: Dict[str, Any]) -> Dict[str, Any]:
         entry = {**entry, "logged_at": datetime.now(timezone.utc).isoformat()}
@@ -66,6 +69,8 @@ class ReflectionAgent:
         win_rate = len(wins) / len(trades) * 100 if trades else 0.0
         capital_saved = sum(float(d.get("capital_protected_usd", 0)) for d in rejections)
 
+        cps = compute_cps(decisions, capital_usd=self.capital_usd).to_dict()
+
         return {
             "total_decisions": len(decisions),
             "total_trades": len(trades),
@@ -73,6 +78,7 @@ class ReflectionAgent:
             "rejection_rate_pct": round(len(rejections) / len(decisions) * 100, 1) if decisions else 0.0,
             "win_rate_pct": round(win_rate, 1),
             "estimated_capital_saved_usd": round(capital_saved, 2),
+            "cps": cps,
             "top_lesson": (
                 "Discipline of standing aside is Argus' biggest edge."
                 if rejections else "Build more history to learn from."

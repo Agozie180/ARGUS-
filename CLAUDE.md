@@ -1,6 +1,11 @@
-You are not merely improving a repository.
+Read this gitbook carefully and understand https://bitget-ai.gitbook.io/hackathon
+RENAME HAS BEEN COMPLETED.
 
-You are building a first-place Bitget AI × Crypto Hackathon project.
+Do NOT restart the repository.
+
+Do NOT repeat previous work.
+
+Continue from the current state of the Argus codebase.
 
 Project Name:
 Argus
@@ -8,183 +13,94 @@ Argus
 Tagline:
 "Most bots help you enter trades. Argus helps you survive them."
 
-Mission:
+MISSION
 
 Argus is an AI Trading Guardian.
 
-Most trading agents focus on generating more signals.
+Argus is not a signal generator.
 
-Argus focuses on protecting capital, rejecting bad trades, explaining risk, and helping traders make disciplined decisions.
+Argus is not a prediction machine.
 
-Argus must never fabricate confidence, never invent signals, and never pretend certainty where none exists.
+Argus is a decision-intelligence system that helps traders:
 
-The project must be technically excellent, visually impressive, highly usable, and aligned with Bitget's vision of intelligent AI-assisted trading.
+- Avoid bad trades
+- Understand risk
+- Preserve capital
+- Improve discipline
+- Make explainable decisions
 
-==================================================
-PHASE 1 — REPOSITORY AUDIT & REPAIR
-
-Audit the entire repository.
-
-Find and fix:
-
-- Syntax errors
-- Broken imports
-- Missing files
-- Missing dependencies
-- Runtime failures
-- Configuration issues
-- Deployment blockers
-- Security concerns
-- README inconsistencies
-- Environment variable issues
-
-Generate:
-
-- requirements.txt
-- .env.example
-- Dockerfile
-- docker-compose.yml
-
-Goal:
-
-Fresh clone → install → run successfully.
-
-==================================================
-PHASE 2 — ARCHITECTURE REBUILD
-
-Refactor into:
-
-/backend
-/frontend
-/core
-/agents
-/services
-/api
-/dashboard
-/tests
-/docs
-
-Use:
-
-Backend:
-
-- FastAPI
-- Pydantic
-- Async architecture
-
-Frontend:
-
-- Streamlit (primary hackathon UI)
-
-Testing:
-
-- Pytest
-
-Deployment:
-
-- Railway
-- Render
-- Docker
-
-==================================================
-PHASE 3 — ARGUS MULTI-AGENT SYSTEM
-
-Build specialized AI agents.
-
-1. Market Intelligence Agent
-
-Responsibilities:
-
-- Multi-timeframe analysis
-- Trend analysis
-- Volatility analysis
-- Liquidity analysis
-- Market structure analysis
-- Momentum analysis
-
-2. Risk Guardian Agent
-
-Responsibilities:
-
-- Risk scoring
-- Drawdown monitoring
-- Position sizing
-- Portfolio health
-- Capital protection
-
-3. Trade Validator Agent
-
-Responsibilities:
-
-- Validate every trade
-- Reject weak setups
-- Check risk-reward
-- Detect low-liquidity conditions
-- Detect conflicting signals
-
-4. Reflection Agent
-
-Responsibilities:
-
-- Trade journaling
-- Post-trade review
-- Mistake detection
-- Continuous learning reports
-
-5. Execution Agent
-
-Responsibilities:
-
-- Paper trading
-- Position tracking
-- Trade lifecycle management
-
-==================================================
-PHASE 4 — SIGNAL HONESTY ENGINE
-
-This is the core innovation.
+Argus must never generate fake confidence.
 
 Argus must never force signals.
 
-Before any recommendation:
-
-Evaluate:
-
-- Data quality
-- Liquidity quality
-- Indicator completeness
-- Market conditions
-- Confidence level
-
-Decision states:
-
-REJECT
-WATCH
-POSSIBLE SETUP
-HIGH QUALITY SETUP
-
-Allowed response:
+Argus must be comfortable saying:
 
 NO TRADE
 
-If conditions are weak.
+when conditions do not justify action.
 
-Argus must be proud to reject trades.
+==================================================
+PRIMARY GOAL
 
-Signature feature:
+Transform Argus into a first-place quality Bitget AI Hackathon project.
+
+The final product must be:
+
+- Functional
+- Deployable
+- Technically impressive
+- Honest
+- Memorable
+- Demo-friendly
+- Judge-friendly
+
+==================================================
+CORE DIFFERENTIATOR
+
+Create the industry's most transparent Trade Rejection Engine.
+
+Most trading agents try to find trades.
+
+Argus specializes in identifying trades that should NOT be taken.
+
+Signature Principle:
 
 NO TRADE IS ALPHA™
 
-Display:
+Argus should clearly explain:
 
-- Capital preserved
-- Risk avoided
-- Bad trades rejected
+- Why a trade is attractive
+- Why it is dangerous
+- Why it should be avoided
+- What conditions would improve it
 
 ==================================================
-PHASE 5 — ARGUS JUDGE MODE
+CAPITAL PROTECTION SCORE (CPS)
 
-Every analysis must generate:
+Create a proprietary metric.
+
+Capital Protection Score (CPS)
+
+Purpose:
+
+Measure value created by avoiding bad decisions.
+
+Track:
+
+- Rejected trades
+- Potential losses avoided
+- Risk exposure avoided
+- FOMO trades blocked
+- Low-liquidity traps avoided
+
+Display CPS prominently throughout the dashboard.
+
+This should become one of Argus's signature innovations.
+
+==================================================
+ARGUS JUDGE MODE
+
+Every analysis should generate:
 
 Trade Thesis
 
@@ -192,11 +108,19 @@ Bull Case
 
 Bear Case
 
-Risk Score
+Market Structure
+
+Liquidity Analysis
+
+Volatility Analysis
 
 Confidence Score
 
+Risk Score
+
 Data Quality Score
+
+Capital Protection Impact
 
 Entry Zone
 
@@ -210,34 +134,81 @@ Why Trade Could Fail
 
 Why Trade Should Be Rejected
 
-Final Decision
+Final Decision:
 
-TAKE TRADE
-WATCH
-REJECT
+- TAKE TRADE
+- WATCH
+- REJECT
+- NO TRADE
+
+==================================================
+SIGNAL HONESTY SYSTEM
+
+Before generating any decision:
+
+Validate:
+
+- Data availability
+- Data freshness
+- Liquidity quality
+- Indicator completeness
+- Market quality
+- Confidence threshold
+
+If quality is insufficient:
+
+Return:
+
 NO TRADE
 
-==================================================
-PHASE 6 — EXPLAINABILITY
+with a detailed explanation.
 
-Every decision must be understandable.
+Never fabricate certainty.
 
-Beginner Mode:
-Simple language.
-
-Professional Mode:
-Detailed technical reasoning.
-
-Every analysis should teach the user.
+Never fabricate opportunities.
 
 ==================================================
-PHASE 7 — WEB APPLICATION
+EXPLAINABILITY ENGINE
 
-Build a complete web application.
+Create two output modes.
+
+BEGINNER MODE
+
+Explain decisions in simple language.
+
+Example:
+
+"Price is moving up, but volume is weak. Buyers are not showing enough strength. Waiting is safer."
+
+PRO MODE
+
+Provide professional reasoning:
+
+- Structure
+- Trend
+- Liquidity
+- Risk
+- Volatility
+- Confirmation logic
+
+==================================================
+WEB APPLICATION
+
+Build Argus as a complete web application.
+
+Recommended stack:
+
+Backend:
+
+- FastAPI
+
+Frontend:
+
+- Streamlit
 
 Pages:
 
-1. Home
+1. Dashboard
 2. Market Scanner
 3. Trade Analysis
 4. Risk Guardian
@@ -245,57 +216,62 @@ Pages:
 6. Analytics
 7. Demo Mode
 
-Dashboard Sections:
+==================================================
+DASHBOARD DESIGN
 
-- Confidence Meter
-- Risk Meter
-- Data Quality Meter
-- Trade Quality Meter
-- Rejected Trades
-- Accepted Trades
-- Capital Saved
-- Mistakes Avoided
-
-Design Style:
+Design language:
 
 Bloomberg Terminal
 +
 Modern AI Copilot
 +
-Institutional Trading Desk
+Professional Trading Desk
+
+Widgets:
+
+- Confidence Meter
+- Risk Meter
+- Data Quality Meter
+- CPS Meter
+- Trade Quality Meter
+- Rejected Trades
+- Accepted Trades
+- Watchlist
+- Capital Saved
+- Mistakes Avoided
 
 ==================================================
-PHASE 8 — DEMO MODE
+DEMO MODE
 
-Create built-in demo scenarios.
-Scenario A:
-Excellent trade
+Create built-in demonstrations.
 
-Scenario B:
-Weak trade
+Scenario 1:
+Excellent setup
 
-Scenario C:
+Scenario 2:
+Weak setup
+
+Scenario 3:
 Low liquidity trap
 
-Scenario D:
-FOMO setup
+Scenario 4:
+FOMO trap
 
-Scenario E:
+Scenario 5:
 Missing data
 
-Scenario F:
+Scenario 6:
 Trend exhaustion
 
-Argus must explain every outcome.
+Each scenario must show exactly how Argus reasons.
 
 ==================================================
-PHASE 9 — WOW MOMENT
+THE WOW MOMENT
 
-Create a signature demonstration.
+Design one unforgettable demo.
+A trade appears attractive.
 
-A setup appears attractive.
-
-Most trading bots would say BUY.
+A typical trading bot would recommend BUY.
 
 Argus rejects it.
 
@@ -303,71 +279,57 @@ Argus explains:
 
 - Liquidity weakness
 - Poor risk-reward
-- Overextension
-- Volatility concerns
+- Market exhaustion
+- Risk factors
 
-Then shows how rejecting the trade protects capital.
+Then demonstrate how capital would have been protected.
 
-This should become the unforgettable demo moment.
+The audience should immediately understand:
 
-==================================================
-PHASE 10 — BITGET INTEGRATION
-
-Design for Bitget compatibility.
-
-Support:
-
-- Market data
-- Futures data
-- Spot data
-- Risk monitoring
-- Agent-based workflows
-
-Prepare for future execution integration.
+"Argus protects traders from themselves."
 
 ==================================================
-PHASE 11 — PRESENTATION PACKAGE
+BITGET HACKATHON PRESENTATION PACKAGE
 
 Generate:
 
-- README.md
+- README
 - Architecture diagram
 - System diagram
-- Feature matrix
 - Deployment guide
-- Judge demo script
+- Demo guide
+- Judge script
 - 3-minute pitch
 - 5-minute pitch
-- Technical documentation
+- Feature matrix
+- Submission checklist
 
 ==================================================
-PHASE 12 — HACKATHON JUDGE REVIEW
+FINAL REVIEW
 
-Review the final project like a top hackathon judge.
+Evaluate Argus as if you are a top Bitget Hackathon judge.
 
 Score:
 
 - Innovation
 - Technical Depth
-- Product Quality
-- User Experience
 - AI Quality
+- Product Design
+- User Experience
 - Market Potential
 - Demo Quality
 
 Identify:
 
 - Weaknesses
-- Missing features
 - Risks
-- Fast improvements
+- Missing features
+- Quick wins
 
-Continue iterating until the project feels like a category-defining AI trading guardian.
+Iterate until the project feels polished, deployable, memorable, and competitive with the strongest submissions.
 
-Final Product Position:
+Final Principle:
 
-Argus is not an AI that predicts the future.
+Argus does not win because it predicts every trade.
 
-Argus is an AI that helps traders make better decisions, avoid bad trades, understand risk, and preserve capital.
-
-Build something judges remember after seeing dozens of ordinary trading agents.
+Argus wins because it helps traders make better decisions than they would alone.

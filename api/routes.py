@@ -65,3 +65,30 @@ def wow(mode: str = Query("professional")):
 @router.get("/journal", response_model=schemas.LearningReport, tags=["analysis"])
 def journal():
     return _argus.learning_report()
+
+
+@router.get("/cps", response_model=schemas.CPSReport, tags=["analysis"])
+def cps():
+    """Capital Protection Score — Argus' signature metric across representative setups."""
+    return _argus.cps_overview()
+
+
+@router.post("/execute/{symbol}", response_model=schemas.AnalysisResponse, tags=["execution"])
+def execute(symbol: str, mode: str = Query("professional"), product: str = Query("futures")):
+    """Analyze and, **only if Argus approves a TAKE TRADE**, open a paper position."""
+    return _argus.execute(symbol.upper(), mode=_mode(mode), product=product)
+
+
+@router.get("/positions", response_model=schemas.PortfolioResponse, tags=["execution"])
+def positions():
+    """Open + closed paper positions with realized P&L."""
+    return _argus.portfolio()
+
+
+@router.post("/positions/{trade_id}/close", response_model=schemas.CloseResponse, tags=["execution"])
+def close_position(trade_id: str, exit_price: float = Query(..., gt=0)):
+    """Close a paper position at a given exit price and run the post-trade review."""
+    try:
+        return _argus.close_position(trade_id, exit_price)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Unknown trade_id '{trade_id}'.")

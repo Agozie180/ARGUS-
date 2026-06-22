@@ -6,6 +6,7 @@ swaps this out for live data when credentials are present.
 """
 from __future__ import annotations
 
+import hashlib
 import math
 import random
 from typing import Dict, List
@@ -17,7 +18,11 @@ _BASE_PRICE = {"BTC": 64_000.0, "ETH": 3_100.0, "SOL": 165.0, "BNB": 580.0}
 
 
 def _seed_for(symbol: str) -> int:
-    return abs(hash(symbol)) % (2**31)
+    # Stable across processes: Python's built-in hash() is salted per run
+    # (PYTHONHASHSEED), which would make the "deterministic" feed change on every
+    # restart. A content hash keeps a symbol's synthetic series reproducible.
+    digest = hashlib.md5(symbol.upper().encode("utf-8")).hexdigest()
+    return int(digest, 16) % (2**31)
 
 
 def generate_ohlc(symbol: str, periods: int = 200, seed_offset: int = 0) -> List[dict]:

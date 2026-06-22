@@ -16,17 +16,20 @@ protected, because avoiding a bad trade is a positive outcome, not an absence.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Tuple
+from dataclasses import dataclass, field
+from typing import List, Optional, Tuple
 
 from core.models import MarketSnapshot, Scores, SetupQuality, FinalDecision, Direction
+from core.sessions import (
+    TradingSession, current_session, confidence_threshold, SESSION_LABEL,
+)
 
 
 # --- Tunable guardian thresholds ---------------------------------------------
 DATA_QUALITY_FLOOR = 55.0      # below this we are blind
 LIQUIDITY_FLOOR = 45.0         # below this slippage eats the edge
 RISK_CEILING = 78.0            # above this, no edge is worth it
-CONFIDENCE_TRADE = 70.0        # confidence needed to TAKE
+CONFIDENCE_TRADE = 70.0        # default conviction floor (session-aware at runtime)
 CONFIDENCE_POSSIBLE = 55.0     # confidence needed to call it a setup
 RR_FLOOR = 1.5                 # minimum acceptable reward:risk
 TRADE_QUALITY_TAKE = 68.0      # trade-quality needed for HIGH QUALITY SETUP
@@ -40,6 +43,15 @@ class HonestyVerdict:
     is_no_trade_alpha: bool
     risk_reward: float
     capital_protection_note: str
+    # Capital Protection Score inputs — which specific dangers were avoided, and
+    # the quantified exposure / downside that standing aside protected.
+    protection_categories: List[str] = field(default_factory=list)
+    exposure_usd: float = 0.0
+    loss_avoided_usd: float = 0.0
+    # Session-aware conviction gate + what would turn this into a trade.
+    session: str = ""
+    confidence_threshold: float = CONFIDENCE_TRADE
+    improvement_conditions: List[str] = field(default_factory=list)
 
 
 def _risk_reward(s: MarketSnapshot) -> float:
@@ -60,9 +72,14 @@ def _risk_reward(s: MarketSnapshot) -> float:
     return round(reward / risk, 2)
 
 
-def evaluate(s: MarketSnapshot, scores: Scores, capital_usd: float = 10_000.0) -> HonestyVerdict:
+def evaluate(s: MarketSnapshot, scores: Scores, capital_usd: float = 10_000.0,
+             session: Optional[TradingSession] = None) -> HonestyVerdict:
     reasons: List[str] = []
     rr = _risk_reward(s)
+
+    # Session-aware conviction gate: Asian 65 / London 72 / New York 75.
+    session = session or current_session()
+    conf_trade = confidence_threshold(session)
 
     # --- Hard gates -----------------------------------------------------------
     blind = scores.data_quality < DATA_QUALITY_FLOOR
@@ -117,7 +134,7 @@ def evaluate(s: MarketSnapshot, scores: Scores, capital_usd: float = 10_000.0) -
             reasons.append("Setup developing but not confirmed — watching.")
     elif (
         scores.trade_quality >= TRADE_QUALITY_TAKE
-        and scores.confidence >= CONFIDENCE_TRADE
+        and scores.confidence >= conf_trade
         and rr >= RR_FLOOR
     ):
         setup = SetupQuality.HIGH_QUALITY_SETUP
@@ -125,24 +142,67 @@ def evaluate(s: MarketSnapshot, scores: Scores, capital_usd: float = 10_000.0) -
     elif scores.confidence >= CONFIDENCE_POSSIBLE:
         setup = SetupQuality.POSSIBLE_SETUP
         decision = FinalDecision.WATCH
-        reasons.append(f"Confidence {scores.confidence:.0f} not yet at conviction threshold {CONFIDENCE_TRADE:.0f}.")
+        reasons.append(
+            f"Confidence {scores.confidence:.0f} below the {SESSION_LABEL[session]} "
+            f"session threshold {conf_trade:.0f}."
+        )
     else:
         setup = SetupQuality.WATCH
         decision = FinalDecision.WATCH
         reasons.append("Edge too weak to act on — preserving capital.")
 
+    # --- Capital Protection categories (drive the CPS) ------------------------
+    categories: List[str] = []
+    if fomo_chase:
+        categories.append("FOMO_BLOCKED")
+    if illiquid:
+        categories.append("LIQUIDITY_TRAP_AVOIDED")
+    if blind:
+        categories.append("LOW_DATA_QUALITY_AVOIDED")
+    if too_risky:
+        categories.append("HIGH_RISK_AVOIDED")
+    if bad_rr:
+        categories.append("POOR_RR_AVOIDED")
+    if conflict:
+        categories.append("SIGNAL_CONFLICT_AVOIDED")
+
+    # --- What would turn this into a trade? (Core Differentiator) -------------
+    improvements: List[str] = []
+    if blind:
+        improvements.append(f"Data quality up to ≥{DATA_QUALITY_FLOOR:.0f} (complete, fresh feeds).")
+    if illiquid:
+        improvements.append(f"Liquidity up to ≥{LIQUIDITY_FLOOR:.0f} with tighter spreads.")
+    if too_risky:
+        improvements.append(f"Risk back below {RISK_CEILING:.0f} — volatility cooling off.")
+    if bad_rr:
+        improvements.append(f"A better entry / wider target for reward:risk ≥{RR_FLOOR:.2f}.")
+    if conflict:
+        improvements.append("Timeframes realigning to one clear direction.")
+    if no_direction:
+        improvements.append("A decisive break that establishes directional bias.")
+    if fomo_chase:
+        improvements.append("A pullback and RSI reset — wait for a healthy retest, not the top.")
+    if decision != FinalDecision.TAKE_TRADE and scores.confidence < conf_trade and not (blind or illiquid or too_risky):
+        improvements.append(
+            f"Confidence rising to the {SESSION_LABEL[session]} threshold of {conf_trade:.0f} "
+            f"(now {scores.confidence:.0f})."
+        )
+    if not improvements:
+        improvements.append("Conditions already meet Argus' bar — maintain discipline on the exit.")
+
     # --- NO TRADE IS ALPHA ----------------------------------------------------
     is_alpha = decision in (FinalDecision.NO_TRADE, FinalDecision.REJECT)
+    exposed = capital_usd * 0.10
+    est_loss = round(exposed * (scores.risk / 100.0), 2)
     if is_alpha:
         # Capital that would have been exposed and is now protected.
-        exposed = capital_usd * 0.10
-        est_loss = exposed * (scores.risk / 100.0)
         note = (
             f"NO TRADE IS ALPHA™ — by standing aside, Argus protected ~${exposed:,.0f} "
             f"of exposure and avoided an estimated ${est_loss:,.0f} of downside risk."
         )
     else:
         note = "Conditions clear — capital deployed within risk limits."
+        exposed, est_loss = 0.0, 0.0
 
     return HonestyVerdict(
         setup_quality=setup,
@@ -151,4 +211,10 @@ def evaluate(s: MarketSnapshot, scores: Scores, capital_usd: float = 10_000.0) -
         is_no_trade_alpha=is_alpha,
         risk_reward=rr,
         capital_protection_note=note,
+        protection_categories=categories,
+        exposure_usd=round(exposed, 2),
+        loss_avoided_usd=est_loss,
+        session=SESSION_LABEL[session],
+        confidence_threshold=conf_trade,
+        improvement_conditions=improvements,
     )

@@ -84,6 +84,23 @@ TRADE_QUALITY_TAKE   = 68.0    # trade-quality for HIGH QUALITY SETUP
 **Reward:risk** is measured entry→nearest target vs entry→invalidation, falling
 back to an ATR-based 2R estimate when explicit levels are missing.
 
+### Session-aware confidence threshold
+
+The conviction bar for a **TAKE** is not fixed — it rises with the dominant
+trading session's efficiency (`core/sessions.py`, resolved from the UTC hour):
+
+| Session | UTC hours | TAKE threshold |
+|---------|-----------|:--------------:|
+| Asian | 22:00–06:59 | **65** |
+| London | 07:00–11:59 | **72** |
+| New York | 12:00–20:59 | **75** |
+
+The orchestrator resolves the session once per analysis and passes it to both
+the Trade Validator and Judge Mode, so the whole verdict is internally
+consistent. The chosen session and threshold are surfaced in the result
+(`session`, `confidence_threshold`) and shown in the UI. The same 70-confidence
+setup is a TAKE in the Asian session but only a WATCH in New York.
+
 ### Grading ladder
 
 ```
@@ -106,6 +123,29 @@ est_loss  = exposed · (risk / 100)       # downside avoided at this risk level
 These accumulate into the learning report so the UI can show *capital saved*.
 
 ---
+
+## 2b. Capital Protection Score (`core/cps.py`)
+
+The CPS is Argus' signature proprietary metric — it scores the value created by
+*avoiding* bad trades. The Signal Honesty Engine emits a `protection_categories`
+list per rejection (`FOMO_BLOCKED`, `LIQUIDITY_TRAP_AVOIDED`,
+`LOW_DATA_QUALITY_AVOIDED`, `HIGH_RISK_AVOIDED`, `POOR_RR_AVOIDED`,
+`SIGNAL_CONFLICT_AVOIDED`) plus `exposure_usd` and `loss_avoided_usd`.
+
+`compute_cps()` rolls a set of decisions into a 0–100 score:
+
+```
+rejection_rate = rejected / decisions
+discipline   = min(rejection_rate / 0.5, 1) · 40    # rewards saying NO when warranted
+magnitude    = min(loss_avoided / (capital·0.10), 1) · 30   # quantified downside dodged
+specificity  = min(dangerous_caught / decisions, 1) · 30    # named dangers, not blanket NO
+cps          = min(discipline + magnitude + specificity, 100)   # grade A+..D
+```
+
+The discipline term caps at a ~50% rejection rate, so it never pays to reject
+*everything* — a high CPS means Argus is catching real danger, not idling.
+`Argus.cps_overview()` computes a deterministic CPS across the six canonical
+scenarios (the dashboard headline); `Argus.cps()` reports the live journal CPS.
 
 ## 3. Judge Mode (`core/judge.py`)
 
@@ -139,7 +179,14 @@ These accumulate into the learning report so the UI can show *capital saved*.
 ## 5. Orchestration & Services
 
 - `agents/orchestrator.py` (class `Argus`) is the single entry point:
-  `analyze()`, `scan()`, `demo()`, `wow_moment()`, `learning_report()`.
+  `analyze()`, `scan()`, `demo()`, `wow_moment()`, `learning_report()`,
+  `cps()`/`cps_overview()`, and the execution path
+  `execute()` → `close_position()` / `mark_to_market()` → `portfolio()`.
+- **Execution is paper-only and gated**: `execute()` runs a full analysis and
+  opens a position *only* when the verdict is `TAKE TRADE` and the Risk Guardian
+  sizes it above $0; otherwise it returns a refusal with the reason. Closing
+  records realized P&L and feeds the Reflection review + journal win-rate. There
+  is no live order path (`place_order` raises).
 - The Streamlit UI calls the orchestrator **in-process** by default; set
   `ARGUS_API_URL` to route through the FastAPI backend instead.
 - `services/market_data.py` + `services/bitget.py` provide live Bitget data when

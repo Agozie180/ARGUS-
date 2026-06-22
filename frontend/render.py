@@ -18,7 +18,10 @@ def render_analysis(result: Dict[str, Any]) -> None:
         st.markdown(f"### {judge['symbol']} @ {judge['price']:,}")
         ui.decision_badge(judge["final_decision"], judge["setup_quality"])
     with top[1]:
-        st.caption(f"Data: {result['data_mode']}  •  Direction: {judge['direction']}")
+        st.caption(
+            f"Data: {result['data_mode']}  •  Direction: {judge['direction']}  •  "
+            f"Session: {judge.get('session','?')} (take ≥{judge.get('confidence_threshold',0):.0f}%)"
+        )
 
     st.markdown("#### Argus Meters")
     ui.four_meters(scores)
@@ -29,6 +32,13 @@ def render_analysis(result: Dict[str, Any]) -> None:
 
     st.markdown("#### Trade Thesis")
     st.write(judge["trade_thesis"])
+
+    a1, a2, a3 = st.columns(3)
+    a1.markdown(f"**🏗 Market structure**\n\n{judge['market_structure']}")
+    a2.markdown(f"**💧 Liquidity**\n\n{judge['liquidity_analysis']}")
+    a3.markdown(f"**🌊 Volatility**\n\n{judge['volatility_analysis']}")
+
+    st.markdown(f"**🛡 Capital Protection Impact:** {judge['capital_protection_impact']}")
 
     c1, c2 = st.columns(2)
     with c1:
@@ -51,6 +61,10 @@ def render_analysis(result: Dict[str, Any]) -> None:
         st.markdown(f"**Why it exists:** {judge['why_trade_exists']}")
         st.markdown(f"**Why it could fail:** {judge['why_trade_could_fail']}")
         st.markdown(f"**Why it could be rejected:** {judge['why_trade_should_be_rejected']}")
+
+    st.markdown("**🔧 What would improve this setup**")
+    for cond in judge.get("what_would_improve", []):
+        st.markdown(f"- {cond}")
 
     st.markdown("#### Explanation")
     st.code(judge["explanation"], language="text")

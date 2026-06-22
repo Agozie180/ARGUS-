@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 from core.models import MarketSnapshot, Mode, Direction, FinalDecision
 from core.scoring import compute_scores
 from core.judge import judge as build_judge_report
+from core.sessions import current_session
 from core import demo_scenarios
 
 from services.bitget import BitgetService
@@ -35,17 +36,20 @@ class Argus:
         self.market = MarketIntelligenceAgent()
         self.risk = RiskGuardianAgent()
         self.validator = TradeValidatorAgent()
-        self.reflection = ReflectionAgent()
+        self.reflection = ReflectionAgent(capital_usd=capital_usd)
         self.execution = ExecutionAgent()
 
     # --- core entry points ----------------------------------------------------
     def analyze_snapshot(self, s: MarketSnapshot, mode: Mode = Mode.PROFESSIONAL,
                          journal: bool = True) -> Dict[str, Any]:
+        # Resolve the active trading session once so the validator and Judge Mode
+        # apply the same session-aware confidence threshold (Asian/London/NY).
+        session = current_session()
         scores = compute_scores(s)
         intelligence = self.market.analyze(s)
         risk = self.risk.assess(s, scores, capital_usd=self.capital_usd)
-        validation = self.validator.validate(s, scores, capital_usd=self.capital_usd)
-        report = build_judge_report(s, mode=mode, capital_usd=self.capital_usd)
+        validation = self.validator.validate(s, scores, capital_usd=self.capital_usd, session=session)
+        report = build_judge_report(s, mode=mode, capital_usd=self.capital_usd, session=session)
 
         capital_protected = 0.0
         if validation.is_no_trade_alpha:
@@ -60,6 +64,8 @@ class Argus:
             "validation": validation.to_dict(),
             "judge": report.to_dict(),
             "capital_protected_usd": capital_protected,
+            "session": validation.session,
+            "confidence_threshold": validation.confidence_threshold,
         }
 
         if journal:
@@ -72,6 +78,9 @@ class Argus:
                 "risk": scores.risk,
                 "data_quality": scores.data_quality,
                 "capital_protected_usd": capital_protected,
+                "protection_categories": validation.protection_categories,
+                "exposure_usd": validation.exposure_usd,
+                "loss_avoided_usd": validation.loss_avoided_usd,
             })
         return result
 
@@ -79,6 +88,89 @@ class Argus:
                 journal: bool = True) -> Dict[str, Any]:
         s = self.data.get_snapshot(symbol, product=product)
         return self.analyze_snapshot(s, mode=mode, journal=journal)
+
+    # --- Execution (paper) ----------------------------------------------------
+    def execute_snapshot(self, s: MarketSnapshot, mode: Mode = Mode.PROFESSIONAL,
+                         journal: bool = True) -> Dict[str, Any]:
+        """Analyze, then open a paper position **only** if Argus approves a TAKE
+        TRADE. The guardian refuses to deploy capital on anything weaker."""
+        result = self.analyze_snapshot(s, mode=mode, journal=journal)
+        decision = result["judge"]["final_decision"]
+        scores, risk = result["scores"], result["risk"]
+
+        if decision != FinalDecision.TAKE_TRADE.value:
+            result["execution"] = {
+                "executed": False,
+                "reason": (f"Argus withheld execution — decision was {decision}. "
+                           "Capital is only deployed on a TAKE TRADE. NO TRADE IS ALPHA™."),
+            }
+            return result
+
+        size = risk["suggested_position_usd"]
+        if size <= 0:
+            result["execution"] = {
+                "executed": False,
+                "reason": "Risk Guardian sized this to $0 (drawdown halt or risk limits).",
+            }
+            return result
+
+        pos = self.execution.open(
+            symbol=s.symbol, direction=s.direction_bias, entry_price=s.price,
+            size_usd=size, stop_loss=result["judge"]["invalidation_zone"],
+            take_profit=result["judge"]["take_profit"],
+            entry_confidence=scores["confidence"], entry_risk=scores["risk"],
+        )
+        if journal:
+            self.reflection.journal({
+                "type": "trade_opened", "trade_id": pos.trade_id, "symbol": s.symbol,
+                "direction": pos.direction, "size_usd": pos.size_usd,
+                "fill_price": pos.fill_price, "stop_loss": pos.stop_loss,
+            })
+        result["execution"] = {"executed": True, "position": pos.to_dict()}
+        return result
+
+    def execute(self, symbol: str, mode: Mode = Mode.PROFESSIONAL, product: str = "futures",
+                journal: bool = True) -> Dict[str, Any]:
+        s = self.data.get_snapshot(symbol, product=product)
+        return self.execute_snapshot(s, mode=mode, journal=journal)
+
+    def close_position(self, trade_id: str, exit_price: float) -> Dict[str, Any]:
+        pos = self.execution.close(trade_id, exit_price)
+        self.reflection.journal({
+            "type": "trade_closed", "trade_id": pos.trade_id, "symbol": pos.symbol,
+            "pnl_pct": pos.pnl_pct, "pnl_usd": pos.pnl_usd,
+            "confidence": pos.entry_confidence, "risk": pos.entry_risk,
+        })
+        review = self.reflection.review_trade({
+            "trade_id": pos.trade_id, "pnl_pct": pos.pnl_pct,
+            "confidence": pos.entry_confidence, "risk": pos.entry_risk,
+        })
+        return {"position": pos.to_dict(), "review": review}
+
+    def mark_to_market(self, prices: Dict[str, float]) -> List[Dict[str, Any]]:
+        closed = self.execution.mark_to_market(prices)
+        for pos in closed:
+            self.reflection.journal({
+                "type": "trade_closed", "trade_id": pos.trade_id, "symbol": pos.symbol,
+                "pnl_pct": pos.pnl_pct, "pnl_usd": pos.pnl_usd,
+                "confidence": pos.entry_confidence, "risk": pos.entry_risk,
+            })
+        return [p.to_dict() for p in closed]
+
+    def portfolio(self) -> Dict[str, Any]:
+        open_pos = self.execution.open_positions()
+        closed_pos = self.execution.closed_positions()
+        realized = round(sum(p.pnl_usd or 0 for p in closed_pos), 2)
+        wins = sum(1 for p in closed_pos if (p.pnl_usd or 0) > 0)
+        return {
+            "open_positions": [p.to_dict() for p in open_pos],
+            "closed_positions": [p.to_dict() for p in closed_pos],
+            "open_count": len(open_pos),
+            "closed_count": len(closed_pos),
+            "realized_pnl_usd": realized,
+            "wins": wins,
+            "losses": len(closed_pos) - wins,
+        }
 
     def scan(self, symbols: Optional[List[str]] = None, mode: Mode = Mode.PROFESSIONAL) -> List[Dict[str, Any]]:
         out = []
@@ -116,3 +208,24 @@ class Argus:
 
     def learning_report(self) -> Dict[str, Any]:
         return self.reflection.learning_report()
+
+    def cps(self) -> Dict[str, Any]:
+        """Live Capital Protection Score from the session journal (real track record)."""
+        return self.reflection.learning_report()["cps"]
+
+    def cps_overview(self) -> Dict[str, Any]:
+        """Deterministic CPS across the six canonical scenarios — the showcase
+        number for the dashboard. These are real guardian verdicts on a
+        representative spread of setups, so it never reads as an empty 0."""
+        from core.cps import compute_cps  # local import avoids a cycle at module load
+        decisions = []
+        for key in demo_scenarios.SCENARIOS:
+            s = demo_scenarios.get_scenario(key)
+            v = self.validator.validate(s, compute_scores(s), capital_usd=self.capital_usd)
+            decisions.append({
+                "final_decision": v.final_decision,
+                "loss_avoided_usd": v.loss_avoided_usd,
+                "exposure_usd": v.exposure_usd,
+                "protection_categories": v.protection_categories,
+            })
+        return compute_cps(decisions, capital_usd=self.capital_usd).to_dict()

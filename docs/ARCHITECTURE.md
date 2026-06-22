@@ -24,6 +24,7 @@ must be as explainable and as valued as a TAKE.
 │                          ORCHESTRATION LAYER                              │
 │                       agents/orchestrator.py  (Argus)                     │
 │   analyze() · scan() · demo() · wow_moment() · learning_report()          │
+│   execute() · close_position() · mark_to_market() · portfolio()           │
 └────────┬────────────────────────────────────────────────────────────────┘
          │
 ┌────────▼──────────────────────────┐   ┌──────────────────────────────────┐

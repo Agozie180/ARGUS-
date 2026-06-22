@@ -29,6 +29,9 @@ class Position:
     pnl_usd: Optional[float] = None
     pnl_pct: Optional[float] = None
     closed_at: Optional[str] = None
+    # Entry context, kept so the Reflection agent can review the trade on close.
+    entry_confidence: float = 0.0
+    entry_risk: float = 0.0
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -41,7 +44,8 @@ class ExecutionAgent:
         self.positions: Dict[str, Position] = {}
 
     def open(self, symbol: str, direction: Direction, entry_price: float, size_usd: float,
-             stop_loss: float, take_profit: List[float]) -> Position:
+             stop_loss: float, take_profit: List[float],
+             entry_confidence: float = 0.0, entry_risk: float = 0.0) -> Position:
         slippage = 0.0005 if any(k in symbol.upper() for k in ("BTC", "ETH")) else 0.002
         fill = entry_price * (1 + slippage) if direction == Direction.LONG else entry_price * (1 - slippage)
         pos = Position(
@@ -54,6 +58,8 @@ class ExecutionAgent:
             stop_loss=round(stop_loss, 8),
             take_profit=[round(t, 8) for t in take_profit],
             opened_at=datetime.now(timezone.utc).isoformat(),
+            entry_confidence=round(entry_confidence, 1),
+            entry_risk=round(entry_risk, 1),
         )
         self.positions[pos.trade_id] = pos
         return pos

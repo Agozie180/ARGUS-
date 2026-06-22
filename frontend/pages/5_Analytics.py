@@ -27,6 +27,15 @@ m[2].metric("💰 Capital saved", f"${report['estimated_capital_saved_usd']:,.0f
 m[3].metric("🚫 Mistakes avoided", mistakes_avoided)
 st.divider()
 
+# --- Capital Protection Score ------------------------------------------------
+cps = argus.cps_overview()
+hc1, hc2 = st.columns([1, 1])
+with hc1:
+    ui.cps_hero(cps)
+with hc2:
+    ui.cps_breakdown(cps)
+st.divider()
+
 c1, c2 = st.columns(2)
 with c1:
     st.markdown("#### Decision distribution")

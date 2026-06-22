@@ -34,3 +34,38 @@ m[3].metric("Risk score", f"{risk.risk_score:.0f}/100")
 st.markdown("#### Guardian notes")
 for n in risk.notes:
     st.markdown(f"- {n}")
+
+# --- Paper portfolio ---------------------------------------------------------
+st.divider()
+st.markdown("### 📂 Paper portfolio")
+pf = argus.portfolio()
+p = st.columns(4)
+p[0].metric("Open positions", pf["open_count"])
+p[1].metric("Closed", pf["closed_count"])
+p[2].metric("Realized P&L", f"${pf['realized_pnl_usd']:,.2f}")
+p[3].metric("Win / loss", f"{pf['wins']} / {pf['losses']}")
+
+if pf["open_positions"]:
+    st.markdown("#### Open positions")
+    for pos in pf["open_positions"]:
+        c = st.columns([3, 2, 2, 2])
+        c[0].markdown(f"**{pos['symbol']}** {pos['direction']} · `{pos['trade_id']}`")
+        c[1].caption(f"size ${pos['size_usd']:,.0f}")
+        c[2].caption(f"fill {pos['fill_price']:,} · stop {pos['stop_loss']:,}")
+        exit_price = c[3].number_input("Exit price", value=float(pos["take_profit"][0]),
+                                       key=f"exit_{pos['trade_id']}", label_visibility="collapsed")
+        if c[3].button("Close", key=f"close_{pos['trade_id']}"):
+            done = argus.close_position(pos["trade_id"], exit_price)
+            cp = done["position"]
+            st.success(f"Closed {cp['symbol']} — P&L ${cp['pnl_usd']:,.2f} ({cp['pnl_pct']*100:.2f}%). "
+                       f"{done['review']['outcome']}: {done['review']['lesson']}")
+            st.rerun()
+else:
+    st.caption("No open paper positions. Approve a TAKE TRADE on the Trade Analysis page to open one.")
+
+if pf["closed_positions"]:
+    import pandas as pd
+    st.markdown("#### Closed positions")
+    cols = ["symbol", "direction", "fill_price", "exit_price", "pnl_usd", "pnl_pct", "size_usd"]
+    df = pd.DataFrame(pf["closed_positions"])[cols]
+    st.dataframe(df, use_container_width=True, hide_index=True)

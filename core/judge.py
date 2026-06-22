@@ -8,7 +8,7 @@ Argus argues *against itself* before it ever argues for a trade.
 """
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from core.models import (
     MarketSnapshot, Scores, Mode, Direction, JudgeReport, FinalDecision,
@@ -16,6 +16,8 @@ from core.models import (
 from core.scoring import compute_scores
 from core.honesty_engine import evaluate
 from core import explain
+from core.cps import impact_statement
+from core.sessions import TradingSession
 
 
 def _entry_zone(s: MarketSnapshot) -> List[float]:
@@ -73,9 +75,46 @@ def _bear_case(s: MarketSnapshot, scores: Scores) -> List[str]:
     return out
 
 
-def judge(s: MarketSnapshot, mode: Mode = Mode.PROFESSIONAL, capital_usd: float = 10_000.0) -> JudgeReport:
+def _market_structure(s: MarketSnapshot) -> str:
+    trend = {"UPTREND": "a clean uptrend", "DOWNTREND": "a clean downtrend"}.get(
+        s.structure, "a range / no clear trend")
+    return (
+        f"{s.symbol} is in {trend} (ADX {s.adx:.0f}, EMA stack {s.ema_stack}). "
+        f"Key levels: support {s.support:,.2f} / resistance {s.resistance:,.2f}. "
+        f"Directional bias is {s.direction_bias.value}."
+    )
+
+
+def _liquidity_analysis(s: MarketSnapshot, scores: Scores) -> str:
+    if s.liquidity_score >= 75:
+        verdict = "deep — fills should be clean"
+    elif s.liquidity_score >= 55:
+        verdict = "adequate but watch size"
+    else:
+        verdict = "thin — slippage and trap risk"
+    return (
+        f"Liquidity {s.liquidity_score:.0f}/100 ({verdict}), spread {s.spread_bps:.1f} bps, "
+        f"relative volume {s.volume_score:.0%}."
+    )
+
+
+def _volatility_analysis(s: MarketSnapshot) -> str:
+    if s.volatility_score >= 75:
+        verdict = "high — stops need room, position size down"
+    elif s.volatility_score >= 55:
+        verdict = "elevated"
+    else:
+        verdict = "calm — normal sizing"
+    return (
+        f"Volatility {s.volatility_score:.0f}/100 ({verdict}), ATR {s.atr_pct:.1f}% of price. "
+        f"A routine move is ~{s.atr_pct:.1f}%, so stops inside that band get hunted."
+    )
+
+
+def judge(s: MarketSnapshot, mode: Mode = Mode.PROFESSIONAL, capital_usd: float = 10_000.0,
+          session: Optional[TradingSession] = None) -> JudgeReport:
     scores = compute_scores(s)
-    verdict = evaluate(s, scores, capital_usd=capital_usd)
+    verdict = evaluate(s, scores, capital_usd=capital_usd, session=session)
 
     thesis = (
         f"{s.symbol} is showing a {s.direction_bias.value.lower()} bias in a {s.structure.lower()} "
@@ -114,6 +153,16 @@ def judge(s: MarketSnapshot, mode: Mode = Mode.PROFESSIONAL, capital_usd: float 
         why_trade_exists=why_exists,
         why_trade_could_fail=why_fail,
         why_trade_should_be_rejected=why_reject,
+        what_would_improve=verdict.improvement_conditions,
+        market_structure=_market_structure(s),
+        liquidity_analysis=_liquidity_analysis(s, scores),
+        volatility_analysis=_volatility_analysis(s),
+        capital_protection_impact=impact_statement(
+            verdict.is_no_trade_alpha, verdict.protection_categories,
+            verdict.loss_avoided_usd, verdict.exposure_usd,
+        ),
+        session=verdict.session,
+        confidence_threshold=verdict.confidence_threshold,
         scores=scores,
         setup_quality=verdict.setup_quality,
         final_decision=verdict.final_decision,

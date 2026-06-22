@@ -15,6 +15,14 @@ When Argus stands aside, it doesn't show an empty screen — it quantifies the
 capital it just protected and the downside it avoided. Avoiding a bad trade is a
 *positive* outcome, not an absence of one.
 
+### Capital Protection Score (CPS) — the signature metric
+
+Most metrics measure value created by *taking* trades. The **CPS** (0–100,
+graded A+–D) measures value created by *avoiding* bad ones — rolling rejected
+trades, losses avoided, risk exposure avoided, FOMO chases blocked, and
+low-liquidity traps caught into one headline number, displayed prominently
+across the dashboard.
+
 ---
 
 ## Why Argus
@@ -89,8 +97,8 @@ Argus runs a five-agent guardian pipeline. Every analysis flows through the
      └──────────────────────────────────────────────────────────────┘
 ```
 
-Four meters drive every decision, all on a 0–100 scale:
-**Confidence · Risk · Data Quality · Trade Quality.**
+Five meters drive the dashboard, all on a 0–100 scale:
+**Confidence · Risk · Data Quality · Trade Quality · Capital Protection Score.**
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full system design.
 
@@ -158,7 +166,11 @@ explanation modes are available everywhere.
 | `GET /scenarios` | List built-in demo scenarios |
 | `GET /demo/{scenario}` | Run scenario A–F |
 | `GET /wow` | The signature NO-TRADE moment |
-| `GET /journal` | Continuous-learning report |
+| `GET /journal` | Continuous-learning report (incl. live CPS) |
+| `GET /cps` | Capital Protection Score across representative setups |
+| `POST /execute/{symbol}` | Open a **paper** position — only if Argus approves a TAKE TRADE |
+| `GET /positions` | Open + closed paper positions with realized P&L |
+| `POST /positions/{trade_id}/close` | Close a paper position and run the post-trade review |
 
 ---
 
@@ -226,8 +238,10 @@ gated off; Argus is a guardian, not an auto-trader.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Railway / Render / Docker
 - [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) — judge walkthrough
 - [`docs/PITCH.md`](docs/PITCH.md) — 3-minute & 5-minute pitches
-- [`docs/TECHNICAL.md`](docs/TECHNICAL.md) — engine internals & scoring math
+- [`docs/TECHNICAL.md`](docs/TECHNICAL.md) — engine internals, scoring & CPS math
+- [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) — self-guided walkthrough
 - [`docs/JUDGE_REVIEW.md`](docs/JUDGE_REVIEW.md) — hackathon judge self-review & scorecard
+- [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) — pre-submission checklist
 
 ---
 

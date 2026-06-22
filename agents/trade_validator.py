@@ -7,12 +7,13 @@ primary job — it is proud to say NO.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from core.models import MarketSnapshot, Scores, SetupQuality, FinalDecision
 from core.honesty_engine import (
     evaluate, DATA_QUALITY_FLOOR, LIQUIDITY_FLOOR, RISK_CEILING, RR_FLOOR,
 )
+from core.sessions import TradingSession
 
 
 @dataclass
@@ -25,6 +26,12 @@ class ValidationResult:
     risk_reward: float = 0.0
     is_no_trade_alpha: bool = False
     capital_protection_note: str = ""
+    protection_categories: List[str] = field(default_factory=list)
+    exposure_usd: float = 0.0
+    loss_avoided_usd: float = 0.0
+    session: str = ""
+    confidence_threshold: float = 0.0
+    improvement_conditions: List[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -33,8 +40,9 @@ class ValidationResult:
 class TradeValidatorAgent:
     name = "Trade Validator"
 
-    def validate(self, s: MarketSnapshot, scores: Scores, capital_usd: float = 10_000.0) -> ValidationResult:
-        verdict = evaluate(s, scores, capital_usd=capital_usd)
+    def validate(self, s: MarketSnapshot, scores: Scores, capital_usd: float = 10_000.0,
+                 session: Optional[TradingSession] = None) -> ValidationResult:
+        verdict = evaluate(s, scores, capital_usd=capital_usd, session=session)
 
         sigs = list(s.timeframe_signals.values())
         bull = sum(1 for v in sigs if v > 0.2)
@@ -60,4 +68,10 @@ class TradeValidatorAgent:
             risk_reward=verdict.risk_reward,
             is_no_trade_alpha=verdict.is_no_trade_alpha,
             capital_protection_note=verdict.capital_protection_note,
+            protection_categories=verdict.protection_categories,
+            exposure_usd=verdict.exposure_usd,
+            loss_avoided_usd=verdict.loss_avoided_usd,
+            session=verdict.session,
+            confidence_threshold=verdict.confidence_threshold,
+            improvement_conditions=verdict.improvement_conditions,
         )
