@@ -1,0 +1,35 @@
+# Render blueprint for Argus — AI Trading Guardian.
+# Deploys the FastAPI backend and the Streamlit frontend as two services.
+# Bitget keys are optional; without them Argus runs on simulated data.
+services:
+  - type: web
+    name: argus-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PAPER_TRADING
+        value: "true"
+      - key: BITGET_API_KEY
+        sync: false
+      - key: BITGET_SECRET_KEY
+        sync: false
+      - key: BITGET_PASSPHRASE
+        sync: false
+
+  - type: web
+    name: argus-frontend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run frontend/Home.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    envVars:
+      - key: PAPER_TRADING
+        value: "true"
+      - key: ARGUS_API_URL
+        fromService:
+          type: web
+          name: argus-api
+          property: hostport
