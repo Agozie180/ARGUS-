@@ -7,6 +7,9 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
+# Fallback port in case Railway does not inject $PORT at runtime.
+ENV PORT=8501
+
 WORKDIR /app
 
 COPY requirements.txt .
@@ -16,10 +19,10 @@ COPY . .
 
 EXPOSE 8501
 
-# Shell form so ${PORT} (injected by Railway/Render at runtime) expands.
-# CORS/XSRF are disabled so the websocket connects behind the platform proxy —
-# without this the page shell loads but the app renders blank.
-CMD streamlit run frontend/Home.py \
+# Shell form so ${PORT} (injected by Railway/Render at runtime, or the ENV
+# fallback above) expands. CORS/XSRF are disabled so the websocket connects
+# behind the platform proxy — without this the shell loads but renders blank.
+CMD python -m streamlit run frontend/Home.py \
     --server.port ${PORT:-8501} \
     --server.address 0.0.0.0 \
     --server.headless true \
