@@ -19,12 +19,8 @@ COPY . .
 
 EXPOSE 8501
 
-# Shell form so ${PORT} (injected by Railway/Render at runtime, or the ENV
-# fallback above) expands. CORS/XSRF are disabled so the websocket connects
-# behind the platform proxy — without this the shell loads but renders blank.
-CMD python -m streamlit run frontend/Home.py \
-    --server.port ${PORT:-8501} \
-    --server.address 0.0.0.0 \
-    --server.headless true \
-    --server.enableCORS false \
-    --server.enableXsrfProtection false
+# Launch via the wrapper script so the port is expanded inside a real shell.
+# This is immune to how the platform tokenises the start command — there is no
+# "$PORT" on the command line for it to mishandle. CORS/XSRF are disabled in the
+# script so the websocket connects behind the platform proxy.
+CMD ["sh", "start-frontend.sh"]
