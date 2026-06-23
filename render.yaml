@@ -24,7 +24,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run frontend/Home.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    startCommand: streamlit run frontend/Home.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false
     envVars:
       - key: PAPER_TRADING
         value: "true"

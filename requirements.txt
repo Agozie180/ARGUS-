@@ -14,12 +14,13 @@ matplotlib>=3.8
 plotly>=5.18
 streamlit>=1.30
 
-# --- Optional: vector memory / reflection (agent degrades gracefully if absent) ---
-chromadb>=0.4.22
-sentence-transformers>=2.3.0
-
-# --- Optional: LLM reasoning (falls back to deterministic rules if absent) ---
-litellm>=1.30.0
-
 # --- Tests ---
 pytest>=8.0
+
+# NOTE: Heavy/optional ML deps (chromadb, sentence-transformers, litellm) are NOT
+# installed by default — they pull in torch (~1-2 GB), which slows cloud builds
+# and can OOM free-tier containers (a common cause of blank deploys). The app
+# degrades gracefully without them: vector memory becomes a no-op and
+# reflection/decision fall back to deterministic rules. The live dashboard, the
+# API, and the Bitget integration never need them. To enable LLM/vector features:
+#     pip install -r requirements-ml.txt

@@ -221,14 +221,29 @@ pytest -q
 
 ## Deployment
 
-Argus ships with a `Dockerfile`, `docker-compose.yml`, `Procfile`,
-`render.yaml`, and `railway.json`. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
-for Railway, Render, and Docker walkthroughs.
+Argus ships with a `Dockerfile` (backend), `Dockerfile.frontend` (dashboard),
+`docker-compose.yml`, `Procfile`, `render.yaml`, and `railway.json`. See
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for full walkthroughs.
 
 - **Render** runs the **FastAPI backend** (`render.yaml` → `uvicorn backend.main:app`).
-- **Railway** runs the **Streamlit dashboard** — `railway.json` overrides the
-  container command with
+- **Railway** runs the **Streamlit dashboard** — `railway.json` builds
+  `Dockerfile.frontend` and runs
   `python -m streamlit run frontend/Home.py --server.port $PORT --server.address 0.0.0.0`.
+
+**Builds are lightweight by default.** The heavy ML extras (chromadb,
+sentence-transformers → torch, litellm) are *not* in `requirements.txt` — they
+slow cloud builds and can OOM free-tier containers. The dashboard, API, and
+Bitget integration don't need them; install `requirements-ml.txt` only for the
+optional vector-memory / LLM features.
+
+### Blank dashboard after deploy?
+
+A Streamlit page that loads but renders blank is almost always the websocket
+being blocked by the platform's reverse proxy. Argus fixes this in two places:
+`.streamlit/config.toml` and explicit `--server.enableCORS false
+--server.enableXsrfProtection false` flags in the start commands. If you still
+see a blank page, confirm the service is running the **Streamlit** command
+(not the FastAPI backend) and that it redeployed from the latest commit.
 
 ---
 
