@@ -1,0 +1,6 @@
+# Shell scripts and Dockerfiles must use LF so they run on Linux containers,
+# regardless of the OS the repo is edited on.
+*.sh text eol=lf
+start-frontend.sh text eol=lf
+Dockerfile text eol=lf
+Dockerfile.* text eol=lf
