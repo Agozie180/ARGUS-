@@ -1,0 +1,16 @@
+# Streamlit deployment config — makes the dashboard display correctly behind
+# cloud reverse proxies (Railway / Render). Without CORS + XSRF disabled the
+# page shell loads but the websocket is blocked, so the app renders blank.
+[server]
+headless = true
+address = "0.0.0.0"
+enableCORS = false
+enableXsrfProtection = false
+enableWebsocketCompression = false
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "dark"

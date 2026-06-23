@@ -221,19 +221,35 @@ pytest -q
 
 ## Deployment
 
-Argus ships with a `Dockerfile`, `docker-compose.yml`, `Procfile`, and
-`render.yaml`. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for Railway,
-Render, and Docker walkthroughs.
+Argus ships with a `Dockerfile`, `docker-compose.yml`, `Procfile`,
+`render.yaml`, and `railway.json`. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+for Railway, Render, and Docker walkthroughs.
+
+- **Render** runs the **FastAPI backend** (`render.yaml` → `uvicorn backend.main:app`).
+- **Railway** runs the **Streamlit dashboard** — `railway.json` overrides the
+  container command with
+  `python -m streamlit run frontend/Home.py --server.port $PORT --server.address 0.0.0.0`.
 
 ---
 
 ## Bitget Integration
 
-Argus is built for Bitget compatibility — spot and futures market data, risk
-monitoring, and agent-based workflows — with `services/bitget.py` as the
-adapter seam. Without credentials it runs on deterministic simulated data so the
-guardian logic is always demonstrable. Live order execution is intentionally
-gated off; Argus is a guardian, not an auto-trader.
+**Argus integrates with Bitget market data for live analysis while keeping
+execution disabled by default.** The **Live Bitget Example** page
+(`frontend/pages/7_Live_Bitget.py`) pulls real BTCUSDT / ETHUSDT ticker and
+candlestick data from Bitget's **public** REST API (`services/live_bitget.py`,
+no API key, no orders) and feeds it straight into the same guardian decision
+engine — returning a real decision, confidence, risk, and Capital Protection
+Score on live prices.
+
+- **Read-only & key-free for live data** — only public market endpoints are
+  called, so no API keys are ever sent, logged, or exposed in the UI or browser.
+- **Graceful fallback** — if Bitget is unreachable the page shows
+  *"Live Bitget data unavailable. Showing demo scenario."* and continues on a
+  deterministic snapshot, so the demo never breaks.
+- **Execution stays off** — `PAPER_TRADING=True` by default; `services/bitget.py`
+  remains the credentialed adapter seam for spot/futures, and live order
+  execution is intentionally gated off. Argus is a guardian, not an auto-trader.
 
 ---
 

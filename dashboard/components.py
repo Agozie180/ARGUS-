@@ -161,6 +161,19 @@ def watchlist(rows: List[Dict]) -> None:
         )
 
 
+def live_data_badge(live: bool, detail: str = "") -> None:
+    """Green 'Live Bitget Data' badge when real data is flowing, amber on fallback."""
+    if live:
+        color, icon, label = GREEN, "🟢", "LIVE BITGET DATA"
+    else:
+        color, icon, label = YELLOW, "🟡", "DEMO MODE (BITGET UNAVAILABLE)"
+    extra = f"<span style='color:{MUTED};font-size:12px;margin-left:10px;'>{detail}</span>" if detail else ""
+    st.markdown(
+        f"<span class='argus-badge' style='background:{color}22;color:{color};'>{icon} {label}</span>{extra}",
+        unsafe_allow_html=True,
+    )
+
+
 def no_trade_alpha_banner(capital_protected: float, note: str) -> None:
     st.markdown(
         f"""

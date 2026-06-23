@@ -21,6 +21,15 @@ st.write(
 
 argus = ac.get_argus()
 
+# --- Live data availability badge --------------------------------------------
+badge = st.columns([1, 3])
+with badge[0]:
+    ui.live_data_badge(True, "Bitget public market data")
+with badge[1]:
+    st.page_link("pages/7_Live_Bitget.py",
+                 label="See the **Live Bitget Example** → real BTC/ETH data through the guardian",
+                 icon="🛰️")
+
 # --- Signature Capital Protection Score + watchlist --------------------------
 report = argus.learning_report()
 left, right = st.columns([1, 1])
