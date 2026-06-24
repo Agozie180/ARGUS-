@@ -2,7 +2,10 @@
 
 > **Most bots help you enter trades. Argus helps you survive them.**
 
+### 🔗 Live demo: **https://web-production-d757d.up.railway.app/**
+
 Argus is an **AI Trading Guardian** built for the Bitget AI × Crypto Hackathon.
+It runs on **live public Bitget market data** and is **Powered by Qwen**.
 
 Most trading agents compete to generate *more* signals. Argus does the opposite:
 it **protects capital, rejects bad trades, explains risk, and enforces
@@ -22,6 +25,20 @@ graded A+–D) measures value created by *avoiding* bad ones — rolling rejecte
 trades, losses avoided, risk exposure avoided, FOMO chases blocked, and
 low-liquidity traps caught into one headline number, displayed prominently
 across the dashboard.
+
+### Live Bitget data by default — no keys required
+
+- **Argus uses live, public Bitget market data by default.** Every analysis,
+  scan and the home dashboard read real prices and candles from Bitget's public
+  REST API — **no API key needed**.
+- **Bitget API keys are only needed for private features** — account balance,
+  positions and live order execution. Market intelligence works fully without
+  them.
+- **Honest fallback** — if the live feed ever fails, Argus drops to a
+  deterministic snapshot that is clearly labelled **`🟡 DEMO DATA` / SIMULATED**.
+  It never presents simulated data as live.
+- **Powered by Qwen** — reasoning/reflection use Qwen by default (OpenAI optional
+  fallback); with no provider it runs on its deterministic rule-based engine.
 
 ---
 

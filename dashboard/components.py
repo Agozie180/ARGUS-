@@ -198,6 +198,14 @@ def data_provenance(source: str, market_type: str = "spot",
     src_label = "Bitget" if live else "Simulated (Bitget unavailable)"
     updated = _fmt_ts(fetched_at) if live else "n/a (offline fallback)"
     mtype = (market_type or "spot").capitalize()
+    # Honest "Powered by Qwen" tag driven by the actual provider config.
+    try:
+        from core.llm import provider_label
+        ai_label = provider_label()
+    except Exception:
+        ai_label = "Qwen"
+    powered = f"Powered by {ai_label}" if ai_label and "Qwen" in ai_label else (
+        f"AI: {ai_label}" if ai_label else "")
     extra = f"<div style='color:{MUTED};font-size:11px;margin-top:6px;'>{detail}</div>" if detail else ""
     st.markdown(
         f"""
@@ -207,6 +215,7 @@ def data_provenance(source: str, market_type: str = "spot",
             <span style="color:{MUTED};">Source:</span> <span style="font-weight:600;">{src_label}</span>
             <span style="color:{MUTED};">Market:</span> <span style="font-weight:600;">{mtype}</span>
             <span style="color:{MUTED};">Last updated:</span> <span style="font-weight:600;">{updated}</span>
+            <span style="color:{BLUE};font-weight:700;margin-left:auto;">⚡ {powered}</span>
           </div>{extra}
         </div>
         """,
