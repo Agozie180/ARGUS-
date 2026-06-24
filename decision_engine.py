@@ -14,11 +14,11 @@ from agents.onchain_macro_agent import MacroSnapshot
 
 logger = logging.getLogger(__name__)
 
-try:
-    import litellm
-    litellm_available = True
-except ImportError:
-    litellm_available = False
+# Qwen-first reasoning (OpenAI optional fallback), with deterministic rule-based
+# degradation when no provider is configured. See core/llm.py.
+from core import llm as argus_llm
+
+litellm_available = argus_llm.litellm_available
 
 @dataclass
 class Decision:
@@ -55,12 +55,13 @@ async def _llm_reason(tech, sent, macro, regime_state, session) -> dict:
     }}"""
     
     try:
-        response = await litellm.acompletion(
-            model="gpt-4o-mini", # Fallback to ensure availability
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
+        # Qwen-first via the shared provider router; OpenAI only if configured.
+        content = await argus_llm.achat(
+            [{"role": "user", "content": prompt}], json_mode=True
         )
-        return json.loads(response.choices[0].message.content)
+        if not content:
+            return None
+        return json.loads(content)
     except Exception as e:
         logger.warning(f"LLM reasoning failed, using rule-based fallback: {e}")
         return None

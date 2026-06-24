@@ -13,6 +13,14 @@ def render_analysis(result: Dict[str, Any]) -> None:
     scores = result["scores"]
     val = result["validation"]
 
+    # Required data-provenance strip — proves Bitget sourcing (or honestly
+    # discloses the simulated fallback) on every single analysis.
+    ui.data_provenance(
+        source=result.get("data_source", "SIMULATED"),
+        market_type=result.get("market_type", "spot"),
+        fetched_at=result.get("fetched_at"),
+    )
+
     top = st.columns([2, 1])
     with top[0]:
         st.markdown(f"### {judge['symbol']} @ {judge['price']:,}")

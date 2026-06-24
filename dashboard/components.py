@@ -5,7 +5,8 @@ Each function renders directly into the active Streamlit context.
 """
 from __future__ import annotations
 
-from typing import Dict, List
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
 import streamlit as st
 
@@ -170,6 +171,45 @@ def live_data_badge(live: bool, detail: str = "") -> None:
     extra = f"<span style='color:{MUTED};font-size:12px;margin-left:10px;'>{detail}</span>" if detail else ""
     st.markdown(
         f"<span class='argus-badge' style='background:{color}22;color:{color};'>{icon} {label}</span>{extra}",
+        unsafe_allow_html=True,
+    )
+
+
+def _fmt_ts(fetched_at: Optional[float]) -> str:
+    if not fetched_at:
+        return "—"
+    try:
+        return datetime.fromtimestamp(float(fetched_at), tz=timezone.utc).strftime("%H:%M:%S UTC")
+    except (TypeError, ValueError, OSError):
+        return "—"
+
+
+def data_provenance(source: str, market_type: str = "spot",
+                    fetched_at: Optional[float] = None, detail: str = "") -> None:
+    """The required data-provenance strip shown on every live analysis.
+
+    Honest by construction: a BITGET_LIVE source renders a green 'Live Bitget
+    Market Data' status; anything else renders an amber 'DEMO DATA' status so a
+    simulated price is never presented as live.
+    """
+    live = str(source).upper() == "BITGET_LIVE"
+    color = GREEN if live else YELLOW
+    status = "🟢 Live Bitget Market Data" if live else "🟡 DEMO DATA"
+    src_label = "Bitget" if live else "Simulated (Bitget unavailable)"
+    updated = _fmt_ts(fetched_at) if live else "n/a (offline fallback)"
+    mtype = (market_type or "spot").capitalize()
+    extra = f"<div style='color:{MUTED};font-size:11px;margin-top:6px;'>{detail}</div>" if detail else ""
+    st.markdown(
+        f"""
+        <div class="argus-card" style="border-color:{color};padding:12px 16px;">
+          <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;font-size:13px;">
+            <span style="font-weight:800;color:{color};letter-spacing:.3px;">{status}</span>
+            <span style="color:{MUTED};">Source:</span> <span style="font-weight:600;">{src_label}</span>
+            <span style="color:{MUTED};">Market:</span> <span style="font-weight:600;">{mtype}</span>
+            <span style="color:{MUTED};">Last updated:</span> <span style="font-weight:600;">{updated}</span>
+          </div>{extra}
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 

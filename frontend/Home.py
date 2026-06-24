@@ -147,6 +147,7 @@ st.markdown(
 
 argus = ac.get_argus()
 cps = argus.cps_overview()
+status = argus.market_status()  # honest live-Bitget connectivity probe (cached)
 
 # --- Signature pillars -------------------------------------------------------
 st.markdown(
@@ -154,6 +155,7 @@ st.markdown(
     <div class="argus-chips">
       <span class="argus-chip"><span class="dot"></span>Capital Protection Score™</span>
       <span class="argus-chip"><span class="dot"></span>Live Bitget Intelligence</span>
+      <span class="argus-chip"><span class="dot"></span>Powered by Qwen</span>
       <span class="argus-chip"><span class="dot"></span>Explainable Decisions</span>
       <span class="argus-chip"><span class="dot"></span>Risk Guardian Engine</span>
       <span class="argus-chip"><span class="dot"></span>NO TRADE IS ALPHA™</span>
@@ -175,7 +177,12 @@ m[1].metric("💰 Losses Avoided", f"${cps['potential_loss_avoided_usd']:,.0f}",
             f"${cps['risk_exposure_avoided_usd']:,.0f} exposure kept off the table")
 m[2].metric("⛔ Weak Setups Rejected", f"{cps['trades_rejected']}",
             f"{cps['rejection_rate_pct']:.0f}% rejection rate")
-m[3].metric("🛰 Live Bitget Intelligence", "Connected", "Real public exchange feed")
+# Honest live-data tile: only says "Connected" when the Bitget probe really is.
+if status.get("live"):
+    m[3].metric("🛰 Live Bitget Data", "Connected",
+                f"BTCUSDT @ {status.get('probe_price'):,.0f}" if status.get("probe_price") else "Public exchange feed")
+else:
+    m[3].metric("🛰 Live Bitget Data", "Demo fallback", "Exchange unreachable — labelled DEMO")
 
 st.markdown("")  # small breathing room
 
@@ -272,6 +279,7 @@ else:
             "Market Scanner, Trade Analysis, Risk Guardian, Journal, Analytics, Demo Mode.")
 
 st.divider()
-st.caption("Argus is a guardian, not an oracle. It helps traders avoid bad trades, "
-           "understand risk, and preserve capital. Paper / read-only by design — "
-           "execution is disabled. NO TRADE IS ALPHA™.")
+st.caption("Argus is a guardian, not an oracle — not a signal generator, prediction "
+           "machine, or trading oracle. It helps traders avoid bad trades, understand "
+           "risk, and preserve capital. Live Bitget public market data · Qwen-assisted "
+           "reasoning · paper / read-only by design (execution disabled). NO TRADE IS ALPHA™.")

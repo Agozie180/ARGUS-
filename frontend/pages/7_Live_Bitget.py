@@ -12,7 +12,6 @@ import streamlit as st
 
 from dashboard import components as ui
 from render import render_analysis
-from core import demo_scenarios
 from services.live_bitget import get_live_market, LiveBitgetError
 
 st.set_page_config(page_title="Live Bitget Example — Argus", page_icon="🛰️", layout="wide")
@@ -26,8 +25,18 @@ st.caption(
 
 argus = ac.get_argus()
 
+# Offer a broad, live Bitget universe (discovered by volume, majors floated up)
+# so judges see real data on many tokens — not a two-symbol demo.
+try:
+    symbol_options = argus.discover_symbols(limit=20)
+except Exception:
+    symbol_options = argus.data.DEFAULT_UNIVERSE
+for must in ("BTCUSDT", "ETHUSDT", "SOLUSDT"):
+    if must not in symbol_options:
+        symbol_options.insert(0, must)
+
 col = st.columns([2, 1, 1])
-symbol = col[0].selectbox("Symbol", ["BTCUSDT", "ETHUSDT"])
+symbol = col[0].selectbox("Symbol", symbol_options)
 granularity = col[1].selectbox("Candles", ["1h", "15min", "4h"], index=0)
 go = col[2].button("Fetch live data", type="primary", use_container_width=True)
 
@@ -54,15 +63,18 @@ if live is not None:
     )
 else:
     ui.live_data_badge(False)
-    st.warning("Live Bitget data unavailable. Showing demo scenario.")
-    # Map the requested symbol onto a representative built-in scenario.
-    scenario_key = "A" if symbol == "BTCUSDT" else "B"
-    snapshot = demo_scenarios.get_scenario(scenario_key)
+    st.warning("Live Bitget data unavailable — showing **labelled DEMO data** for "
+               f"{symbol} (deterministic synthetic feed). This is never presented as live.")
+    # Build a synthetic snapshot for the *actual* requested symbol so the demo
+    # fallback is honest and consistent rather than a mismatched canned scenario.
+    from services.market_data import build_snapshot
+    snapshot = build_snapshot(symbol)
+    snapshot.source = "SIMULATED"
     price = snapshot.price
     change_pct = None
     candles = []
     fetched_dt = datetime.now(timezone.utc)
-    freshness_caption = "Deterministic demo snapshot (no live feed)."
+    freshness_caption = "Deterministic synthetic snapshot (Bitget unreachable)."
 
 # --- run the real decision engine on whatever snapshot we have ---------------
 result = argus.analyze_snapshot(snapshot, mode=ac.Mode.PROFESSIONAL, journal=False)

@@ -64,7 +64,7 @@ Argus runs a five-agent guardian pipeline. Every analysis flows through the
 ```
             ┌──────────────────────────────────────────────┐
             │              MARKET SNAPSHOT                   │
-            │   (Bitget data, or deterministic simulation)   │
+            │  (LIVE Bitget data → labelled SIM on failure)  │
             └───────────────────────┬────────────────────────┘
                                     │
      ┌──────────────────────────────▼──────────────────────────────┐
@@ -114,8 +114,9 @@ Fresh clone → install → run.
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# 2. (Optional) add Bitget keys — without them Argus uses deterministic
-#    simulated data, so the demo always works.
+# 2. (Optional) copy env. Argus reads LIVE public Bitget market data out of the
+#    box — NO keys needed. If Bitget is unreachable it falls back to a clearly
+#    labelled simulated snapshot, so the demo always works.
 cp .env.example .env
 
 # 3a. Run the web app (primary hackathon UI)
@@ -249,22 +250,77 @@ see a blank page, confirm the service is running the **Streamlit** command
 
 ## Bitget Integration
 
-**Argus integrates with Bitget market data for live analysis while keeping
-execution disabled by default.** The **Live Bitget Example** page
-(`frontend/pages/7_Live_Bitget.py`) pulls real BTCUSDT / ETHUSDT ticker and
-candlestick data from Bitget's **public** REST API (`services/live_bitget.py`,
-no API key, no orders) and feeds it straight into the same guardian decision
-engine — returning a real decision, confidence, risk, and Capital Protection
-Score on live prices.
+**Live Bitget market data powers the entire guardian — not just one page.**
+Every analysis, the Market Scanner, the home dashboard watchlist and the Live
+Bitget Example all read **real, live** prices and candles from Bitget's public
+REST API and run them through the exact same decision engine. No API key is
+required for market data, and execution stays disabled by default.
+
+### Endpoints used (public, read-only, no credentials)
+
+| Endpoint | Purpose | Used by |
+|---|---|---|
+| `GET /api/v2/spot/market/tickers?symbol=…` | Last price, 24h change, bid/ask, USDT turnover | per-symbol analysis |
+| `GET /api/v2/spot/market/tickers` (no symbol) | Whole-market snapshot for scanning & discovery | Market Scanner, `discover_symbols` |
+| `GET /api/v2/spot/market/candles?symbol=…&granularity=…` | OHLC history for indicator math (EMA/RSI/ATR/ADX) | every snapshot |
+
+Base URL: `https://api.bitget.com` (`services/live_bitget.py`).
+
+### Market-data flow
+
+```
+symbol ─▶ services/bitget.py (BitgetService)
+            ├─ live: services/live_bitget.get_live_market()  ─▶ Bitget public REST
+            │        └─ real ticker + candles ─▶ snapshot_from_candles()
+            │                                     (source=BITGET_LIVE, fetched_at, market_type)
+            └─ fallback: services/market_data.build_snapshot()  (source=SIMULATED)
+                                   │
+                                   ▼
+        MarketSnapshot ─▶ agents ─▶ scores ─▶ Signal Honesty Engine ─▶ Judge Mode ─▶ UI / API
+```
+
+Every `MarketSnapshot` carries its own provenance (`source`, `market_type`,
+`fetched_at`), so the UI proves the source on **each** result instead of
+asserting it globally.
+
+### How Argus uses Bitget data
+
+- **Real prices everywhere** — `BitgetService.get_snapshot()` fetches live data
+  by default (TTL-cached ~45s, parallelised across a scan to stay fast and
+  within rate limits). Tokens like SOLUSDT now show the true live Bitget price.
+- **Bitget-wide universe** — `discover_symbols()` ranks the live USDT market by
+  24h turnover, so the scanner reflects what's actually trading on Bitget (20+
+  symbols by default), not a hardcoded three-token list.
+- **Provenance on every analysis** — Source · Last Updated · Market Type ·
+  Status (`🟢 Live Bitget Market Data`) rendered on each verdict.
+- **Status endpoint** — `GET /market/status` reports live connectivity, the
+  probe price, and the endpoint in use.
+
+### What happens if Bitget is unavailable
+
+Argus **never pretends simulated data is live.** On any network/parse failure it
+falls back to a deterministic synthetic snapshot stamped `source=SIMULATED`, and
+the UI shows an amber **`🟡 DEMO DATA`** badge. Set `ARGUS_LIVE_DATA=false` to
+force offline mode (the test suite does this for determinism).
 
 - **Read-only & key-free for live data** — only public market endpoints are
   called, so no API keys are ever sent, logged, or exposed in the UI or browser.
-- **Graceful fallback** — if Bitget is unreachable the page shows
-  *"Live Bitget data unavailable. Showing demo scenario."* and continues on a
-  deterministic snapshot, so the demo never breaks.
-- **Execution stays off** — `PAPER_TRADING=True` by default; `services/bitget.py`
-  remains the credentialed adapter seam for spot/futures, and live order
+- **Execution stays off** — `PAPER_TRADING=True` by default; live order
   execution is intentionally gated off. Argus is a guardian, not an auto-trader.
+
+---
+
+## AI Reasoning — Qwen-first
+
+Argus's optional LLM narration and reflection are **Qwen-powered by default**
+(Alibaba's open model family via DashScope), aligning with the Bitget AI stack.
+OpenAI is supported only as an optional fallback when `OPENAI_API_KEY` is set.
+With no provider configured, Argus runs entirely on its **deterministic
+rule-based engine** — it never fabricates reasoning or confidence it didn't run.
+
+- Provider routing lives in `core/llm.py` (Qwen → OpenAI → rules).
+- Configure via `ARGUS_LLM_PROVIDER` (`qwen` default), `ARGUS_QWEN_MODEL`
+  (`dashscope/qwen-plus`), and `DASHSCOPE_API_KEY`. See `.env.example`.
 
 ---
 

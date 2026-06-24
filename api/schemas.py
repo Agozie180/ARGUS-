@@ -27,6 +27,9 @@ class ScoreBlock(BaseModel):
 
 class AnalysisResponse(BaseModel):
     data_mode: str
+    data_source: Optional[str] = None
+    market_type: Optional[str] = None
+    fetched_at: Optional[float] = None
     snapshot: Dict[str, Any]
     intelligence: Dict[str, Any]
     scores: Dict[str, Any]
@@ -56,8 +59,22 @@ class CloseResponse(BaseModel):
     review: Dict[str, Any]
 
 
+class MarketStatusResponse(BaseModel):
+    live: bool
+    source: str
+    exchange: str = "Bitget"
+    market_type: str = "spot"
+    endpoint: Optional[str] = None
+    detail: str = ""
+    probe_symbol: Optional[str] = None
+    probe_price: Optional[float] = None
+    checked_at: Optional[float] = None
+
+
 class ScanRow(BaseModel):
     symbol: str
+    price: Optional[float] = None
+    change_24h_pct: Optional[float] = None
     decision: str
     setup_quality: str
     confidence: float
@@ -65,6 +82,10 @@ class ScanRow(BaseModel):
     data_quality: float
     trade_quality: float
     direction: str
+    source: str = "SIMULATED"
+    market_type: str = "spot"
+    fetched_at: Optional[float] = None
+    cps_impact: Optional[str] = None
 
 
 class ScenarioInfo(BaseModel):

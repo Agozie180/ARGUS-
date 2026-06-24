@@ -79,6 +79,54 @@ def fetch_ticker(symbol: str) -> dict:
     return data[0]
 
 
+def fetch_all_tickers() -> List[dict]:
+    """Every public spot ticker in a single request.
+
+    One call to ``/api/v2/spot/market/tickers`` (no symbol param) returns the
+    whole spot market — used for the Market Scanner and dynamic symbol discovery
+    so Argus reflects the live Bitget universe, not a hardcoded three-token list.
+    """
+    return _get("/api/v2/spot/market/tickers", {})
+
+
+def discover_symbols(limit: int = 20, quote: str = "USDT", preferred: Optional[List[str]] = None) -> List[str]:
+    """Rank live Bitget spot symbols by 24h USDT turnover and return the top N.
+
+    `preferred` symbols (if currently tradable) are floated to the front so the
+    majors judges expect (BTC/ETH/SOL...) always appear, with the rest filled by
+    real liquidity ranking from the live exchange.
+    """
+    tickers = fetch_all_tickers()
+    rows = []
+    for t in tickers:
+        sym = str(t.get("symbol", "")).upper()
+        if not sym.endswith(quote):
+            continue
+        base = sym[: -len(quote)]
+        # Skip leveraged ETF-style tokens (e.g. BTC3LUSDT/ETH5SUSDT) so the
+        # universe stays the spot crypto pairs a guardian should reason about.
+        if any(base.endswith(suf) for suf in ("3L", "3S", "5L", "5S", "2L", "2S")):
+            continue
+        vol = _safe_float(t.get("usdtVolume")) or _safe_float(t.get("quoteVolume")) or 0.0
+        rows.append((sym, vol))
+    rows.sort(key=lambda r: r[1], reverse=True)
+    ranked = [sym for sym, _ in rows]
+
+    out: List[str] = []
+    if preferred:
+        ranked_set = set(ranked)
+        for p in preferred:
+            p = p.upper()
+            if p in ranked_set and p not in out:
+                out.append(p)
+    for sym in ranked:
+        if sym not in out:
+            out.append(sym)
+        if len(out) >= limit:
+            break
+    return out[:limit]
+
+
 def fetch_candles(symbol: str, granularity: str = "1h", limit: int = 100) -> List[dict]:
     """Public spot candlesticks, normalised to OHLC dicts (oldest first)."""
     raw = _get(
@@ -152,6 +200,10 @@ def get_live_market(symbol: str, granularity: str = "1h", limit: int = 100) -> L
         spread_bps=spread_bps,
         liquidity_score=liquidity_score,
         data_freshness=round(freshness, 3),
+        source="BITGET_LIVE",
+        market_type="spot",
+        fetched_at=now,
+        change_24h_pct=change_pct,
     )
 
     return LiveMarket(

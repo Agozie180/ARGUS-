@@ -88,12 +88,18 @@ def snapshot_from_candles(
     liquidity_score: float | None = None,
     data_freshness: float = 1.0,
     indicator_completeness: float = 1.0,
+    source: str = "SIMULATED",
+    market_type: str = "spot",
+    fetched_at: float = 0.0,
+    change_24h_pct: float | None = None,
 ) -> MarketSnapshot:
     """Compute a full MarketSnapshot from a list of OHLC candle dicts.
 
     Shared by the synthetic feed and the live Bitget adapter so both produce
     identical indicator math. Optional overrides let the live path supply the
-    real last price, real bid/ask spread, and a measured freshness value.
+    real last price, real bid/ask spread, a measured freshness value, and the
+    provenance fields (source/market_type/fetched_at) the UI uses to prove
+    whether a price is live Bitget data or a labelled simulation.
     """
     closes = [c["close"] for c in candles]
     price = closes[-1] if price is None else price
@@ -150,6 +156,10 @@ def snapshot_from_candles(
         volume_score=round(volume_score, 2),
         indicator_completeness=indicator_completeness,
         data_freshness=data_freshness,
+        source=source,
+        market_type=market_type,
+        fetched_at=fetched_at,
+        change_24h_pct=change_24h_pct,
         support=round(support, 8 if price < 1 else 2),
         resistance=round(resistance, 8 if price < 1 else 2),
     )

@@ -56,7 +56,10 @@ class Argus:
             capital_protected = round(self.capital_usd * 0.10 * (scores.risk / 100.0), 2)
 
         result = {
-            "data_mode": self.data.mode,
+            "data_mode": "LIVE-DATA" if s.is_live else "SIMULATED-DATA",
+            "data_source": s.source,
+            "market_type": s.market_type,
+            "fetched_at": s.fetched_at,
             "snapshot": s.to_dict(),
             "intelligence": intelligence.to_dict(),
             "scores": scores.to_dict(),
@@ -176,19 +179,38 @@ class Argus:
         out = []
         for s in self.data.scan(symbols):
             r = self.analyze_snapshot(s, mode=mode, journal=False)
+            # CPS impact: positive when the guardian protects capital by standing
+            # aside (rejections), neutral/positive when it greenlights real edge.
+            decision = r["judge"]["final_decision"]
+            cps_impact = "+ protects capital" if decision in ("NO TRADE", "REJECT") else (
+                "+ disciplined entry" if decision == "TAKE TRADE" else "neutral")
             out.append({
                 "symbol": s.symbol,
-                "decision": r["judge"]["final_decision"],
+                "price": s.price,
+                "change_24h_pct": s.change_24h_pct,
+                "decision": decision,
                 "setup_quality": r["judge"]["setup_quality"],
                 "confidence": r["scores"]["confidence"],
                 "risk": r["scores"]["risk"],
                 "data_quality": r["scores"]["data_quality"],
                 "trade_quality": r["scores"]["trade_quality"],
                 "direction": s.direction_bias.value,
+                "source": s.source,
+                "market_type": s.market_type,
+                "fetched_at": s.fetched_at,
+                "cps_impact": cps_impact,
             })
         # Best opportunities first; rejections sink to the bottom.
         out.sort(key=lambda x: (x["decision"] != "TAKE TRADE", -x["trade_quality"]))
         return out
+
+    def market_status(self) -> Dict[str, Any]:
+        """Live Bitget connectivity status for the UI/API data-source badge."""
+        return self.data.market_status()
+
+    def discover_symbols(self, limit: int = 20) -> List[str]:
+        """Top-liquidity Bitget USDT symbols (live), falling back to the static universe."""
+        return self.data.discover_symbols(limit=limit)
 
     def demo(self, scenario: str, mode: Mode = Mode.PROFESSIONAL) -> Dict[str, Any]:
         s = demo_scenarios.get_scenario(scenario)

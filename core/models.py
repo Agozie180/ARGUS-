@@ -66,13 +66,25 @@ class MarketSnapshot:
     indicator_completeness: float = 1.0  # fraction of expected indicators present [0,1]
     data_freshness: float = 1.0          # 1.0 = fresh, decays toward 0 when stale
 
+    # Data provenance — every snapshot declares where its prices came from, so the
+    # UI can prove (or honestly disclaim) live Bitget sourcing instead of asserting it.
+    source: str = "SIMULATED"            # "BITGET_LIVE" | "SIMULATED"
+    market_type: str = "spot"            # "spot" | "futures"
+    fetched_at: float = 0.0              # unix seconds when the data was read (0 = n/a)
+    change_24h_pct: Optional[float] = None  # real 24h change when sourced live
+
     # Levels
     support: float = 0.0
     resistance: float = 0.0
 
+    @property
+    def is_live(self) -> bool:
+        return self.source == "BITGET_LIVE"
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["direction_bias"] = self.direction_bias.value
+        d["is_live"] = self.is_live
         return d
 
 

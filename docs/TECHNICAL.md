@@ -189,9 +189,24 @@ scenarios (the dashboard headline); `Argus.cps()` reports the live journal CPS.
   is no live order path (`place_order` raises).
 - The Streamlit UI calls the orchestrator **in-process** by default; set
   `ARGUS_API_URL` to route through the FastAPI backend instead.
-- `services/market_data.py` + `services/bitget.py` provide live Bitget data when
-  credentialed and **deterministic simulated data** otherwise — so tests and
-  demos are reproducible.
+- `services/bitget.py` (`BitgetService`) reads **live, public Bitget market
+  data by default** (no credentials) via `services/live_bitget.py`
+  (`/api/v2/spot/market/tickers` + `/candles`). Snapshots are TTL-cached (~45s)
+  and scans fan out in parallel. On any failure it falls back to
+  `services/market_data.py`'s **deterministic synthetic feed**, stamped
+  `source=SIMULATED`. Set `ARGUS_LIVE_DATA=false` to force offline mode (tests
+  do). `discover_symbols()` ranks the live USDT market by turnover for a
+  Bitget-wide universe; `market_status()` powers the data-source badge.
+- Every `MarketSnapshot` carries provenance (`source` / `market_type` /
+  `fetched_at`), surfaced on each analysis and via `GET /market/status`.
+
+## 5b. AI Provider Routing (`core/llm.py`)
+
+Optional LLM narration/reflection is **Qwen-first**: `core/llm.py` routes to
+Qwen (DashScope) by default, with OpenAI as an optional fallback only when
+`OPENAI_API_KEY` is set, and a deterministic rule-based fallback when no provider
+is configured (so reasoning is never fabricated). Configure with
+`ARGUS_LLM_PROVIDER`, `ARGUS_QWEN_MODEL`, `DASHSCOPE_API_KEY`.
 
 ---
 

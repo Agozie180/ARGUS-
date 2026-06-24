@@ -40,5 +40,5 @@ def root():
         "service": "argus",
         "tagline": "Most bots help you enter trades. Argus helps you survive them.",
         "docs": "/docs",
-        "endpoints": ["/health", "/analyze/{symbol}", "/scan", "/scenarios", "/demo/{scenario}", "/wow", "/journal", "/cps", "/execute/{symbol}", "/positions", "/positions/{trade_id}/close"],
+        "endpoints": ["/health", "/market/status", "/symbols", "/analyze/{symbol}", "/scan", "/scenarios", "/demo/{scenario}", "/wow", "/journal", "/cps", "/execute/{symbol}", "/positions", "/positions/{trade_id}/close"],
     }

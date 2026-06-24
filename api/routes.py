@@ -28,6 +28,18 @@ def health():
     return schemas.HealthResponse(data_mode=_argus.data.mode, version=VERSION)
 
 
+@router.get("/market/status", response_model=schemas.MarketStatusResponse, tags=["meta"])
+def market_status():
+    """Live Bitget market-data connectivity — proves the data source for judges."""
+    return _argus.market_status()
+
+
+@router.get("/symbols", tags=["analysis"])
+def symbols(limit: int = Query(20, ge=1, le=100)):
+    """Dynamically discovered top-liquidity Bitget USDT symbols (live)."""
+    return {"symbols": _argus.discover_symbols(limit=limit)}
+
+
 @router.get("/analyze/{symbol}", response_model=schemas.AnalysisResponse, tags=["analysis"])
 def analyze(symbol: str, mode: str = Query("professional"), product: str = Query("futures")):
     """Full guardian analysis for a symbol (Judge Mode verdict + meters)."""

@@ -6,14 +6,11 @@ from typing import Dict, Any
 
 from memory import Memory
 
-logger = logging.getLogger(__name__)
+# Qwen-first reflection narration (OpenAI optional fallback). See core/llm.py.
+from core import llm as argus_llm
 
-try:
-    import litellm
-    litellm_available = True
-except ImportError:
-    litellm_available = False
-    logger.warning("litellm not installed. Using fallback mock reflection.")
+logger = logging.getLogger(__name__)
+litellm_available = argus_llm.litellm_available
 
 def run_reflection(trade_record: dict, session: Any) -> None:
     trade_json = json.dumps(trade_record, indent=2)
@@ -35,32 +32,24 @@ def run_reflection(trade_record: dict, session: Any) -> None:
     }}"""
     
     reflection_text = ""
-    if litellm_available:
-        try:
-            response = litellm.completion(
-                model="claude-sonnet-4-6", # as requested
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
-            reflection_text = response.choices[0].message.content
-        except Exception as e:
-            logger.error(f"LLM call failed: {e}. Using fallback.")
-            reflection_text = json.dumps({
-                "what_worked": "Fallback: Trade executed and closed.",
-                "what_failed": "Fallback: LLM unreachable.",
-                "confidence_calibration": "Fallback: Unable to assess.",
-                "regime_accuracy": "Fallback: Unable to assess.",
-                "rule_improvement": "Fallback: Check API keys.",
-                "next_cycle_note": "Fallback: Proceed with caution."
-            })
-    else:
+    try:
+        # Qwen-first via the shared provider router (OpenAI optional fallback).
+        content = argus_llm.chat([{"role": "user", "content": prompt}], json_mode=True)
+        reflection_text = content or ""
+    except Exception as e:
+        logger.error(f"LLM call failed: {e}. Using deterministic fallback.")
+        reflection_text = ""
+
+    if not reflection_text:
+        # No LLM provider configured/reachable — degrade honestly rather than
+        # fabricate a post-trade narrative.
         reflection_text = json.dumps({
-            "what_worked": "Mock: Trade executed.",
-            "what_failed": "Mock: litellm missing.",
-            "confidence_calibration": "Mock: N/A",
-            "regime_accuracy": "Mock: N/A",
-            "rule_improvement": "Mock: Install litellm.",
-            "next_cycle_note": "Mock: Next cycle."
+            "what_worked": "Deterministic summary: trade executed and closed per plan.",
+            "what_failed": "LLM narration unavailable (no Qwen/OpenAI provider configured).",
+            "confidence_calibration": "Not assessed without an LLM provider.",
+            "regime_accuracy": "Not assessed without an LLM provider.",
+            "rule_improvement": "Set DASHSCOPE_API_KEY to enable Qwen-powered reflection.",
+            "next_cycle_note": "Proceed with disciplined defaults."
         })
         
     # Store in ChromaDB
