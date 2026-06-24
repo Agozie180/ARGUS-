@@ -125,15 +125,15 @@ st.markdown(
       <span class="argus-eyebrow">🛡️ AI Capital-Protection Engine</span>
       <div class="argus-title">Argus — The AI Trading Guardian</div>
       <div class="argus-deck">
-        Most trading bots tell you when to trade.
-        <span class="accent">Argus tells you when <em>not</em> to.</span>
+        Most AI trading bots optimize for activity.
+        <span class="accent">Argus optimizes for survival.</span>
       </div>
       <div class="argus-lede">
-        Protect capital. Reject bad trades. Trade with discipline. Argus runs every
-        setup through a risk-first guardian engine — scoring confidence, risk, data
-        quality and reward:risk — then explains, in plain language, exactly why a
-        trade lives or dies. It never fabricates confidence and is proud to say
-        <strong>NO&nbsp;TRADE</strong>.
+        Argus protects capital before it pursues profit. It rejects weak setups,
+        explains risk in plain language, and <strong>measures the value of the trades
+        you don't take</strong> — proving that disciplined inaction can outperform
+        impulsive action. Not another signal generator: a capital-protection AI built
+        to help traders survive long enough to win.
       </div>
       <div class="argus-philosophy">
         <span class="mark">NO&nbsp;TRADE&nbsp;IS&nbsp;ALPHA™</span>
@@ -148,14 +148,15 @@ st.markdown(
 argus = ac.get_argus()
 cps = argus.cps_overview()
 
-# --- Trust signals -----------------------------------------------------------
+# --- Signature pillars -------------------------------------------------------
 st.markdown(
     """
     <div class="argus-chips">
-      <span class="argus-chip"><span class="dot"></span>Live Bitget Market Data</span>
-      <span class="argus-chip"><span class="dot"></span>Risk Guardian Engine</span>
+      <span class="argus-chip"><span class="dot"></span>Capital Protection Score™</span>
+      <span class="argus-chip"><span class="dot"></span>Live Bitget Intelligence</span>
       <span class="argus-chip"><span class="dot"></span>Explainable Decisions</span>
-      <span class="argus-chip"><span class="dot"></span>Paper-Trading Safe Mode</span>
+      <span class="argus-chip"><span class="dot"></span>Risk Guardian Engine</span>
+      <span class="argus-chip"><span class="dot"></span>NO TRADE IS ALPHA™</span>
     </div>
     """,
     unsafe_allow_html=True,
@@ -164,14 +165,17 @@ st.markdown(
 # ============================================================================
 #  PRIMARY METRICS — the proof, above the fold
 # ============================================================================
-st.markdown('<div class="argus-section">Guardian Track Record</div>', unsafe_allow_html=True)
+st.markdown('<div class="argus-section">The Measurable Value Of Trades Not Taken</div>',
+            unsafe_allow_html=True)
+st.caption("Every metric below is computed by the live decision engine on real "
+           "market structure — not a marketing claim.")
 m = st.columns(4)
 m[0].metric("🛡 Capital Protection Score", f"{cps['cps']:.0f}/100", f"Grade {cps['grade']}")
 m[1].metric("💰 Losses Avoided", f"${cps['potential_loss_avoided_usd']:,.0f}",
-            f"${cps['risk_exposure_avoided_usd']:,.0f} exposure dodged")
-m[2].metric("⛔ Bad Trades Rejected", f"{cps['trades_rejected']}",
+            f"${cps['risk_exposure_avoided_usd']:,.0f} exposure kept off the table")
+m[2].metric("⛔ Weak Setups Rejected", f"{cps['trades_rejected']}",
             f"{cps['rejection_rate_pct']:.0f}% rejection rate")
-m[3].metric("🛰 Live Bitget Data", "Connected", "Public market feed")
+m[3].metric("🛰 Live Bitget Intelligence", "Connected", "Real public exchange feed")
 
 st.markdown("")  # small breathing room
 
@@ -194,13 +198,14 @@ st.divider()
 # ============================================================================
 st.markdown('<div class="argus-section">See The Guardian Decide</div>', unsafe_allow_html=True)
 st.markdown(
-    "Two setups, one engine. Argus **accepts** a genuinely high-quality trade and "
-    "**rejects** a tempting FOMO chase — and tells you why in plain English."
+    "Same engine, two setups. Argus **accepts** a genuinely high-quality trade and "
+    "**rejects** a tempting FOMO chase — quantifying the loss avoided and explaining "
+    "every verdict in plain language. This is discipline you can audit."
 )
 
 st.page_link(
     "pages/7_Live_Bitget.py",
-    label="🛰️  **Live Bitget Example** → run real BTC / ETH data through the guardian right now",
+    label="🛰️  **Live Bitget Intelligence** → run real BTC / ETH data through the guardian right now",
     icon="🛰️",
 )
 
