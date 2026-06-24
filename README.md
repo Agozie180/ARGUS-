@@ -4,6 +4,8 @@
 
 ### 🔗 Live demo: **https://web-production-d757d.up.railway.app/**
 
+## Demo video: ** https://youtu.be/Qf23RNQ1WNo?si=5mxhur0TDOCZ6fXb **
+
 Argus is an **AI Trading Guardian** built for the Bitget AI × Crypto Hackathon.
 It runs on **live public Bitget market data** and is **Powered by Qwen**.
 
