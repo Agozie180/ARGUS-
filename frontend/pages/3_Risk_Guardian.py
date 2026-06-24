@@ -10,6 +10,7 @@ st.markdown("# 🛡️ Risk Guardian")
 st.caption("Capital protection first. Argus sizes by volatility and conviction, and halts on drawdown.")
 
 argus = ac.get_argus()
+ui.execution_mode_banner(argus.execution_status())
 col = st.columns([2, 1, 1])
 symbol = col[0].text_input("Symbol", "BTCUSDT")
 capital = col[1].number_input("Capital (USD)", value=10_000.0, step=1000.0)
@@ -49,7 +50,8 @@ if pf["open_positions"]:
     st.markdown("#### Open positions")
     for pos in pf["open_positions"]:
         c = st.columns([3, 2, 2, 2])
-        c[0].markdown(f"**{pos['symbol']}** {pos['direction']} · `{pos['trade_id']}`")
+        _mtag = "🔴 LIVE" if pos.get("mode") == "LIVE" else "📝 PAPER"
+        c[0].markdown(f"**{pos['symbol']}** {pos['direction']} · {_mtag} · `{pos['trade_id']}`")
         c[1].caption(f"size ${pos['size_usd']:,.0f}")
         c[2].caption(f"fill {pos['fill_price']:,} · stop {pos['stop_loss']:,}")
         exit_price = c[3].number_input("Exit price", value=float(pos["take_profit"][0]),

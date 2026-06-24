@@ -310,6 +310,29 @@ force offline mode (the test suite does this for determinism).
 
 ---
 
+## Execution — paper by default, execution-ready
+
+Argus is **execution-capable without requiring real funds**, and ships a visible
+**`📝 PAPER MODE` / `🔴 LIVE MODE`** indicator on the Home, Trade Analysis, Risk
+Guardian and Execution Console pages. A unified execution abstraction
+(`agents/execution.py` + `services/bitget.py`) can **simulate** orders,
+**record** every order to an auditable log, and **place real Bitget orders** —
+but only after clearing four independent safety gates (`services/execution_mode.py`):
+
+1. `PAPER_TRADING=false`
+2. `ARGUS_ALLOW_LIVE_TRADING=true` (deployment master switch — unset on the demo)
+3. Bitget trading credentials present
+4. Live mode *armed* at runtime by typing `ENABLE LIVE TRADING` in the Execution
+   Console (each order also passes a per-order `confirm`)
+
+If any gate is unmet the app is **hard-locked to PAPER** — orders are simulated
+and recorded, never sent. `GET /execution/status` exposes the mode, gates and
+order log. `ARGUS_LIVE_ORDER_DRYRUN=true` rehearses the full signed-order path
+without transmitting. **No real trade can happen by accident or on the judging
+deployment.**
+
+---
+
 ## AI Reasoning — Qwen-first
 
 Argus's optional LLM narration and reflection are **Qwen-powered by default**

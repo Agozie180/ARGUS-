@@ -1,7 +1,10 @@
 """Agent 5 — Execution.
 
-Paper trading only. Tracks position lifecycle (open -> mark-to-market -> close)
-with simulated slippage. Argus is a guardian: there is no live order path here.
+Execution-ready, paper by default. Tracks position lifecycle
+(open -> mark-to-market -> close) with simulated slippage, records every order,
+and can route a REAL Bitget order **only** when live trading has cleared all of
+the execution_mode safety gates. Argus is a guardian: live orders never fire by
+default or on the judging deployment.
 """
 from __future__ import annotations
 
@@ -32,6 +35,9 @@ class Position:
     # Entry context, kept so the Reflection agent can review the trade on close.
     entry_confidence: float = 0.0
     entry_risk: float = 0.0
+    # Execution provenance: which mode actually filled this position.
+    mode: str = "PAPER"                       # PAPER | LIVE
+    order_ref: Optional[str] = None           # exchange order id / paper ref
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -40,16 +46,36 @@ class Position:
 class ExecutionAgent:
     name = "Execution"
 
-    def __init__(self):
+    def __init__(self, bitget=None):
         self.positions: Dict[str, Position] = {}
+        # A flat, append-only record of every order Argus routes (paper or live),
+        # so the Execution Console can prove what was simulated vs sent.
+        self.order_log: List[dict] = []
+        self._bitget = bitget  # set by the orchestrator to enable the live path
 
     def open(self, symbol: str, direction: Direction, entry_price: float, size_usd: float,
              stop_loss: float, take_profit: List[float],
-             entry_confidence: float = 0.0, entry_risk: float = 0.0) -> Position:
+             entry_confidence: float = 0.0, entry_risk: float = 0.0,
+             live: bool = False) -> Position:
         slippage = 0.0005 if any(k in symbol.upper() for k in ("BTC", "ETH")) else 0.002
         fill = entry_price * (1 + slippage) if direction == Direction.LONG else entry_price * (1 - slippage)
+        trade_id = f"trade_{uuid.uuid4().hex[:8]}"
+        mode = "PAPER"
+        order_ref: Optional[str] = f"paper_{trade_id}"
+
+        # Live routing is only attempted when explicitly requested AND a Bitget
+        # service is wired; the service itself re-checks every safety gate and
+        # raises if live trading is not fully enabled.
+        if live and self._bitget is not None:
+            side = "buy" if direction == Direction.LONG else "sell"
+            ack = self._bitget.place_spot_order(
+                symbol=symbol, side=side, size=size_usd, order_type="market", confirm=True,
+            )
+            mode = "LIVE"
+            order_ref = str(ack.get("status", "SENT"))
+
         pos = Position(
-            trade_id=f"trade_{uuid.uuid4().hex[:8]}",
+            trade_id=trade_id,
             symbol=symbol,
             direction=direction.value,
             entry_price=round(entry_price, 8),
@@ -60,9 +86,20 @@ class ExecutionAgent:
             opened_at=datetime.now(timezone.utc).isoformat(),
             entry_confidence=round(entry_confidence, 1),
             entry_risk=round(entry_risk, 1),
+            mode=mode,
+            order_ref=order_ref,
         )
         self.positions[pos.trade_id] = pos
+        self.order_log.append({
+            "trade_id": trade_id, "symbol": symbol, "side": direction.value,
+            "size_usd": round(size_usd, 2), "fill_price": round(fill, 8),
+            "mode": mode, "order_ref": order_ref,
+            "ts": pos.opened_at,
+        })
         return pos
+
+    def recent_orders(self, limit: int = 25) -> List[dict]:
+        return list(reversed(self.order_log[-limit:]))
 
     def mark_to_market(self, current_prices: Dict[str, float]) -> List[Position]:
         """Close any open position that hit its stop or first target."""

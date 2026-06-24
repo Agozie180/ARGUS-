@@ -40,6 +40,12 @@ def symbols(limit: int = Query(20, ge=1, le=100)):
     return {"symbols": _argus.discover_symbols(limit=limit)}
 
 
+@router.get("/execution/status", tags=["execution"])
+def execution_status():
+    """Current execution mode (PAPER/LIVE) + safety gates + recent order log."""
+    return _argus.execution_status()
+
+
 @router.get("/analyze/{symbol}", response_model=schemas.AnalysisResponse, tags=["analysis"])
 def analyze(symbol: str, mode: str = Query("professional"), product: str = Query("futures")):
     """Full guardian analysis for a symbol (Judge Mode verdict + meters)."""

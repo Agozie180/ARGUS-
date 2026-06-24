@@ -148,6 +148,7 @@ st.markdown(
 argus = ac.get_argus()
 cps = argus.cps_overview()
 status = argus.market_status()  # honest live-Bitget connectivity probe (cached)
+ui.execution_mode_banner(argus.execution_status())  # PAPER / LIVE indicator
 
 # --- Signature pillars -------------------------------------------------------
 st.markdown(

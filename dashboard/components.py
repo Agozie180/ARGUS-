@@ -214,6 +214,43 @@ def data_provenance(source: str, market_type: str = "spot",
     )
 
 
+def execution_mode_banner(status: Dict, compact: bool = False) -> None:
+    """Prominent PAPER MODE / LIVE MODE indicator for trading & execution pages.
+
+    Honest by construction: it reads the orchestrator's resolved mode, so it can
+    only show LIVE MODE when the deployment permits live trading and the operator
+    has armed it. Otherwise it shows PAPER MODE (optionally 'live-capable').
+    """
+    mode = str(status.get("mode", "PAPER")).upper()
+    live = mode == "LIVE"
+    capable = bool(status.get("live_allowed_by_deployment"))
+    if live:
+        color, icon, label = RED, "🔴", "LIVE MODE"
+        sub = "REAL orders are routed to Bitget. Real capital at risk."
+    else:
+        color, icon, label = BLUE, "📝", "PAPER MODE"
+        sub = ("Simulated fills — no real funds. Live-capable: arm in the Execution Console."
+               if capable else "Simulated fills — no real funds. Execution is recorded, never sent.")
+    if compact:
+        st.markdown(
+            f"<span class='argus-badge' style='background:{color}22;color:{color};"
+            f"font-size:15px;'>{icon} {label}</span>",
+            unsafe_allow_html=True,
+        )
+        return
+    st.markdown(
+        f"""
+        <div class="argus-card" style="border-color:{color};border-left:6px solid {color};
+             padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <span style="font-size:22px;font-weight:850;color:{color};letter-spacing:1px;">
+            {icon} {label}</span>
+          <span style="color:#cfd3d8;font-size:13.5px;">{sub}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def no_trade_alpha_banner(capital_protected: float, note: str) -> None:
     st.markdown(
         f"""

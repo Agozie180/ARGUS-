@@ -16,14 +16,21 @@ Design:
 """
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import os
 import time
+import urllib.request
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Tuple
 
 from core.models import MarketSnapshot
 from services import market_data
 from services import live_bitget
+from services import execution_mode
 
 
 def _live_enabled() -> bool:
@@ -184,9 +191,66 @@ class BitgetService:
             "checked_at": time.time(),
         }
 
-    def place_order(self, *args, **kwargs):  # pragma: no cover
-        """Risk-monitoring build is read-only. Execution is paper-only."""
-        raise NotImplementedError(
-            "Argus is a guardian: live execution is disabled. Use the paper "
-            "Execution agent for simulated fills."
+    # --- live order placement (multi-gated, off by default) ------------------
+    def _sign(self, timestamp: str, method: str, path: str, body: str) -> str:
+        prehash = f"{timestamp}{method.upper()}{path}{body}"
+        digest = hmac.new(self.secret.encode(), prehash.encode(), hashlib.sha256).digest()
+        return base64.b64encode(digest).decode()
+
+    def place_spot_order(self, symbol: str, side: str, size: float,
+                         order_type: str = "market", price: Optional[float] = None,
+                         confirm: bool = False) -> Dict[str, object]:
+        """Place a REAL spot order on Bitget — only when every safety gate is met.
+
+        This method is intentionally hard to reach: it raises unless the
+        deployment explicitly allows live trading (see services/execution_mode)
+        AND the caller passes ``confirm=True``. It exists so Argus is genuinely
+        execution-capable; it never fires by default or on the judging build.
+
+        Set ``ARGUS_LIVE_ORDER_DRYRUN=true`` to exercise the full signed-request
+        path without actually transmitting the order (returns a DRYRUN ack).
+        """
+        if not execution_mode.live_allowed_by_deployment():
+            raise PermissionError(
+                "Live trading is disabled by deployment configuration. "
+                "Argus is paper-only here. NO TRADE IS ALPHA™."
+            )
+        if not confirm:
+            raise PermissionError("Live order refused: explicit confirm=True is required.")
+
+        path = "/api/v2/spot/trade/place-order"
+        body_obj = {
+            "symbol": symbol.upper(),
+            "side": side.lower(),               # buy | sell
+            "orderType": order_type.lower(),    # market | limit
+            "force": "gtc",
+            "size": str(size),
+        }
+        if order_type.lower() == "limit" and price:
+            body_obj["price"] = str(price)
+        body = json.dumps(body_obj)
+        ts = str(int(time.time() * 1000))
+
+        # Optional dry-run: prove the signed path end-to-end without sending it.
+        if execution_mode._env_true("ARGUS_LIVE_ORDER_DRYRUN"):
+            self._sign(ts, "POST", path, body)  # exercise signing
+            return {"status": "DRYRUN", "would_send": body_obj, "endpoint": path}
+
+        headers = {
+            "ACCESS-KEY": self.api_key,
+            "ACCESS-SIGN": self._sign(ts, "POST", path, body),
+            "ACCESS-TIMESTAMP": ts,
+            "ACCESS-PASSPHRASE": self.passphrase,
+            "Content-Type": "application/json",
+            "locale": "en-US",
+        }
+        req = urllib.request.Request(
+            f"{live_bitget._BASE_URL}{path}", data=body.encode(), headers=headers, method="POST",
         )
+        with urllib.request.urlopen(req, timeout=10.0) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        return {"status": "SENT", "response": payload, "endpoint": path}
+
+    def place_order(self, *args, **kwargs):
+        """Back-compat shim — routes to the gated live order path."""
+        return self.place_spot_order(*args, **kwargs)

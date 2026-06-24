@@ -22,6 +22,7 @@ from core.sessions import current_session
 from core import demo_scenarios
 
 from services.bitget import BitgetService
+from services import execution_mode
 from agents.market_intelligence import MarketIntelligenceAgent
 from agents.risk_guardian import RiskGuardianAgent
 from agents.trade_validator import TradeValidatorAgent
@@ -37,7 +38,11 @@ class Argus:
         self.risk = RiskGuardianAgent()
         self.validator = TradeValidatorAgent()
         self.reflection = ReflectionAgent(capital_usd=capital_usd)
-        self.execution = ExecutionAgent()
+        self.execution = ExecutionAgent(bitget=self.data)
+        # Runtime live-trading arm switch (off by default). Even when armed, the
+        # deployment must independently permit live trading (execution_mode), so
+        # this can never enable real orders on the judging build.
+        self._live_armed = False
 
     # --- core entry points ----------------------------------------------------
     def analyze_snapshot(self, s: MarketSnapshot, mode: Mode = Mode.PROFESSIONAL,
@@ -92,18 +97,54 @@ class Argus:
         s = self.data.get_snapshot(symbol, product=product)
         return self.analyze_snapshot(s, mode=mode, journal=journal)
 
-    # --- Execution (paper) ----------------------------------------------------
+    # --- Execution mode (paper by default, live multi-gated) ------------------
+    def effective_mode(self) -> str:
+        """The mode a trade would actually execute in right now: LIVE only when
+        the deployment permits it AND the operator has armed it; else PAPER."""
+        if execution_mode.live_allowed_by_deployment() and self._live_armed:
+            return "LIVE"
+        return "PAPER"
+
+    def arm_live(self, confirm_phrase: str) -> Dict[str, Any]:
+        """Arm live trading for this session — requires the exact confirm phrase
+        and a deployment that permits live trading. Returns the new status."""
+        if not execution_mode.live_allowed_by_deployment():
+            return {"armed": False, "reason": "Deployment does not permit live trading.",
+                    **self.execution_status()}
+        if confirm_phrase.strip() != execution_mode.CONFIRM_PHRASE:
+            return {"armed": False, "reason": "Confirmation phrase did not match.",
+                    **self.execution_status()}
+        self._live_armed = True
+        return {"armed": True, **self.execution_status()}
+
+    def disarm_live(self) -> Dict[str, Any]:
+        self._live_armed = False
+        return {"armed": False, **self.execution_status()}
+
+    def execution_status(self) -> Dict[str, Any]:
+        dep = execution_mode.deployment_status()
+        return {
+            "mode": self.effective_mode(),
+            "armed": self._live_armed,
+            **dep,
+            "recent_orders": self.execution.recent_orders(),
+        }
+
+    # --- Execution (paper by default; live only when armed + permitted) -------
     def execute_snapshot(self, s: MarketSnapshot, mode: Mode = Mode.PROFESSIONAL,
                          journal: bool = True) -> Dict[str, Any]:
-        """Analyze, then open a paper position **only** if Argus approves a TAKE
-        TRADE. The guardian refuses to deploy capital on anything weaker."""
+        """Analyze, then open a position **only** if Argus approves a TAKE TRADE.
+        Routes to a real Bitget order only in armed+permitted LIVE mode; otherwise
+        the fill is simulated and recorded. The guardian refuses to deploy capital
+        on anything weaker than TAKE TRADE."""
         result = self.analyze_snapshot(s, mode=mode, journal=journal)
+        exec_mode = self.effective_mode()
         decision = result["judge"]["final_decision"]
         scores, risk = result["scores"], result["risk"]
 
         if decision != FinalDecision.TAKE_TRADE.value:
             result["execution"] = {
-                "executed": False,
+                "executed": False, "mode": exec_mode,
                 "reason": (f"Argus withheld execution — decision was {decision}. "
                            "Capital is only deployed on a TAKE TRADE. NO TRADE IS ALPHA™."),
             }
@@ -112,7 +153,7 @@ class Argus:
         size = risk["suggested_position_usd"]
         if size <= 0:
             result["execution"] = {
-                "executed": False,
+                "executed": False, "mode": exec_mode,
                 "reason": "Risk Guardian sized this to $0 (drawdown halt or risk limits).",
             }
             return result
@@ -122,14 +163,16 @@ class Argus:
             size_usd=size, stop_loss=result["judge"]["invalidation_zone"],
             take_profit=result["judge"]["take_profit"],
             entry_confidence=scores["confidence"], entry_risk=scores["risk"],
+            live=(exec_mode == "LIVE"),
         )
         if journal:
             self.reflection.journal({
                 "type": "trade_opened", "trade_id": pos.trade_id, "symbol": s.symbol,
                 "direction": pos.direction, "size_usd": pos.size_usd,
                 "fill_price": pos.fill_price, "stop_loss": pos.stop_loss,
+                "mode": pos.mode,
             })
-        result["execution"] = {"executed": True, "position": pos.to_dict()}
+        result["execution"] = {"executed": True, "mode": pos.mode, "position": pos.to_dict()}
         return result
 
     def execute(self, symbol: str, mode: Mode = Mode.PROFESSIONAL, product: str = "futures",
