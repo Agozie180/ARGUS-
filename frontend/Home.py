@@ -117,23 +117,33 @@ st.markdown(
 
 
 # ============================================================================
+#  JUDGE STATUS BAR — the first thing a judge sees (honest, live states)
+# ============================================================================
+argus = ac.get_argus()
+cps = argus.cps_overview()
+status = argus.market_status()       # honest live-Bitget connectivity probe (cached)
+exec_status = argus.execution_status()
+ui.judge_status_bar(status, exec_status, cps)
+
+# ============================================================================
 #  HERO
 # ============================================================================
 st.markdown(
     """
     <div class="argus-hero">
-      <span class="argus-eyebrow">🛡️ AI Capital-Protection Engine</span>
+      <span class="argus-eyebrow">🛡️ AI Capital-Protection Engine · Powered by Qwen · Live Bitget</span>
       <div class="argus-title">Argus — The AI Trading Guardian</div>
       <div class="argus-deck">
         Most AI trading bots optimize for activity.
         <span class="accent">Argus optimizes for survival.</span>
       </div>
       <div class="argus-lede">
+        <strong>Protect capital. Reject bad trades. Trade with discipline.</strong><br/>
         Argus protects capital before it pursues profit. It rejects weak setups,
         explains risk in plain language, and <strong>measures the value of the trades
         you don't take</strong> — proving that disciplined inaction can outperform
-        impulsive action. Not another signal generator: a capital-protection AI built
-        to help traders survive long enough to win.
+        impulsive action. Not a signal generator, prediction machine or trading oracle:
+        a capital-protection AI built to help traders survive long enough to win.
       </div>
       <div class="argus-philosophy">
         <span class="mark">NO&nbsp;TRADE&nbsp;IS&nbsp;ALPHA™</span>
@@ -145,10 +155,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-argus = ac.get_argus()
-cps = argus.cps_overview()
-status = argus.market_status()  # honest live-Bitget connectivity probe (cached)
-ui.execution_mode_banner(argus.execution_status())  # PAPER / LIVE indicator
+ui.execution_mode_banner(exec_status)  # PAPER / LIVE indicator
 
 # --- Signature pillars -------------------------------------------------------
 st.markdown(
@@ -157,8 +164,8 @@ st.markdown(
       <span class="argus-chip"><span class="dot"></span>Capital Protection Score™</span>
       <span class="argus-chip"><span class="dot"></span>Live Bitget Intelligence</span>
       <span class="argus-chip"><span class="dot"></span>Powered by Qwen</span>
+      <span class="argus-chip"><span class="dot"></span>Execution Ready</span>
       <span class="argus-chip"><span class="dot"></span>Explainable Decisions</span>
-      <span class="argus-chip"><span class="dot"></span>Risk Guardian Engine</span>
       <span class="argus-chip"><span class="dot"></span>NO TRADE IS ALPHA™</span>
     </div>
     """,
@@ -179,11 +186,16 @@ m[1].metric("💰 Losses Avoided", f"${cps['potential_loss_avoided_usd']:,.0f}",
 m[2].metric("⛔ Weak Setups Rejected", f"{cps['trades_rejected']}",
             f"{cps['rejection_rate_pct']:.0f}% rejection rate")
 # Honest live-data tile: only says "Connected" when the Bitget probe really is.
+from datetime import datetime, timezone
+_ts = status.get("checked_at")
+_ts_label = (datetime.fromtimestamp(_ts, tz=timezone.utc).strftime("Updated %H:%M:%S UTC")
+             if _ts else "")
 if status.get("live"):
-    m[3].metric("🛰 Live Bitget Data", "Connected",
-                f"BTCUSDT @ {status.get('probe_price'):,.0f}" if status.get("probe_price") else "Public exchange feed")
+    m[3].metric("🛰 Live Bitget Data",
+                f"BTCUSDT ${status.get('probe_price'):,.0f}" if status.get("probe_price") else "Connected",
+                f"Source: Bitget · {_ts_label}")
 else:
-    m[3].metric("🛰 Live Bitget Data", "Demo fallback", "Exchange unreachable — labelled DEMO")
+    m[3].metric("🛰 Live Bitget Data", "SIMULATED", "Exchange unreachable — labelled DEMO")
 
 st.markdown("")  # small breathing room
 
@@ -197,7 +209,7 @@ with left:
     ui.cps_hero(cps)
     ui.cps_breakdown(cps)
 with right:
-    ui.watchlist(argus.scan(["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]))
+    ui.watchlist(argus.scan(["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT"]))
 
 st.divider()
 

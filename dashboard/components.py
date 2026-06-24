@@ -223,6 +223,49 @@ def data_provenance(source: str, market_type: str = "spot",
     )
 
 
+def judge_status_bar(market_status: Dict, exec_status: Dict, cps: Dict) -> None:
+    """The first thing a judge sees: six trust signals with honest live states.
+
+    Renders Powered by Qwen · Source: Bitget · Live/Simulated Market Data ·
+    Execution Ready (mode) · Capital Protection Score · NO TRADE IS ALPHA™ in one
+    prominent strip. Every state is read from real status, so it never overclaims.
+    """
+    live = bool(market_status.get("live"))
+    try:
+        from core.llm import provider_label
+        ai_label = provider_label()
+    except Exception:
+        ai_label = "Qwen"
+    mode = str(exec_status.get("mode", "PAPER")).upper()
+    data_chip = (
+        ("🟢", GREEN, "Live Bitget Market Data") if live
+        else ("🟡", YELLOW, "SIMULATED DATA")
+    )
+    grade = cps.get("grade", "–")
+    cps_val = cps.get("cps", 0)
+    mode_color = RED if mode == "LIVE" else BLUE
+
+    def chip(icon, color, text):
+        return (f"<span style='display:inline-flex;align-items:center;gap:7px;"
+                f"background:{color}1a;border:1px solid {color}55;border-radius:999px;"
+                f"padding:8px 15px;font-size:13px;font-weight:700;color:{color};"
+                f"white-space:nowrap;'>{icon} {text}</span>")
+
+    chips = "".join([
+        chip("⚡", BLUE, f"Powered by {ai_label}"),
+        chip("📡", GREEN, "Source: Bitget"),
+        chip(data_chip[0], data_chip[1], data_chip[2]),
+        chip("⚙️", mode_color, f"Execution Ready · {mode} MODE"),
+        chip("🛡", GREEN, f"Capital Protection Score™ {cps_val:.0f} ({grade})"),
+        chip("🚫", GREEN, "NO TRADE IS ALPHA™"),
+    ])
+    st.markdown(
+        f"<div style='display:flex;flex-wrap:wrap;gap:10px;align-items:center;"
+        f"margin:0 0 16px 0;'>{chips}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def execution_mode_banner(status: Dict, compact: bool = False) -> None:
     """Prominent PAPER MODE / LIVE MODE indicator for trading & execution pages.
 

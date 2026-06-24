@@ -352,11 +352,23 @@ deployment.**
 
 ## AI Reasoning — Qwen-first
 
-Argus's optional LLM narration and reflection are **Qwen-powered by default**
-(Alibaba's open model family via DashScope), aligning with the Bitget AI stack.
-OpenAI is supported only as an optional fallback when `OPENAI_API_KEY` is set.
-With no provider configured, Argus runs entirely on its **deterministic
+**Argus is Powered by Qwen.** Its AI reasoning/narration layer runs on Qwen by
+default (Alibaba's open model family via DashScope), aligning with the Bitget AI
+stack. OpenAI is supported only as an optional fallback when `OPENAI_API_KEY` is
+set. With no provider configured, Argus runs entirely on its **deterministic
 rule-based engine** — it never fabricates reasoning or confidence it didn't run.
+
+### Where Qwen is used
+
+| Layer | Qwen's role |
+|---|---|
+| **Market reasoning** | Narrates the read on trend/structure/momentum behind a verdict (`decision_engine.py`) |
+| **Trade validation** | Explains *why* a setup passes or fails the honesty-engine gates in plain language |
+| **Reflection** | Post-trade review — what worked, what didn't, one rule to adjust (`reflection.py`) |
+| **Risk explanation** | Turns the Risk Guardian's numbers into a human-readable rationale |
+
+The **decisions themselves are deterministic and auditable** — Qwen narrates and
+explains the guardian's reasoning; it never invents a signal or a score.
 
 - Provider routing lives in `core/llm.py` (Qwen → OpenAI → rules).
 - Configure via `ARGUS_LLM_PROVIDER` (`qwen` default), `ARGUS_QWEN_MODEL`
